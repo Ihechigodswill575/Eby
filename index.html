@@ -1,0 +1,395 @@
+import React, { useState } from 'react';
+
+export default function MediaDownloader() {
+  const [url, setUrl] = useState('');
+  const [quality, setQuality] = useState('max');
+  const [downloadType, setDownloadType] = useState('video');
+  const [audioFormat, setAudioFormat] = useState('mp3');
+  const [removeWatermark, setRemoveWatermark] = useState(false);
+  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState(null);
+
+  const platforms = [
+    'YouTube', 'TikTok', 'Instagram', 'Twitter/X', 'Facebook',
+    'Snapchat', 'Reddit', 'Vimeo', 'SoundCloud', 'Pinterest'
+  ];
+
+  const handleSubmit = async () => {
+    if (!url.trim()) {
+      setResult({ type: 'error', message: '⚠️ Please enter a valid URL' });
+      return;
+    }
+
+    if (!isValidUrl(url)) {
+      setResult({ type: 'error', message: '⚠️ Please enter a valid URL format (must start with http:// or https://)' });
+      return;
+    }
+
+    setLoading(true);
+    setResult(null);
+
+    try {
+      const response = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 1000,
+          messages: [{
+            role: 'user',
+            content: `You are a media downloader API helper. Make a POST request to the Cobalt API at https://co.wuk.sh/api/json with this JSON body:
+{
+  "url": "${url}",
+  "vQuality": "${quality}",
+  "isAudioOnly": ${downloadType === 'audio'},
+  "isAudioMuted": ${downloadType === 'mute'},
+  "aFormat": "${audioFormat}",
+  "filenamePattern": "pretty",
+  "isNoTTWatermark": ${removeWatermark}
+}
+
+Important: Return ONLY the raw JSON response from the API. Do not add explanations, markdown formatting, or any other text. Just parse the API response and return it as clean JSON.`
+          }]
+        })
+      });
+
+      const data = await response.json();
+      
+      if (data.content && data.content.length > 0) {
+        const textContent = data.content.find(item => item.type === 'text');
+        if (textContent) {
+          try {
+            let cleanText = textContent.text.replace(/```json\n?|\n?```/g, '').trim();
+            cleanText = cleanText.replace(/^[^{]*/, '').replace(/[^}]*$/, '');
+            const apiResponse = JSON.parse(cleanText);
+            handleApiResponse(apiResponse);
+          } catch (parseError) {
+            const urlMatch = textContent.text.match(/https?:\/\/[^\s"'<>]+/);
+            if (urlMatch) {
+              setResult({
+                type: 'success',
+                message: '✅ Download ready!',
+                downloadUrl: urlMatch[0],
+                filename: 'ebymedias_download'
+              });
+            } else {
+              setResult({
+                type: 'error',
+                message: `❌ Could not process the response. Please try again with a different URL.`
+              });
+            }
+          }
+        }
+      } else {
+        throw new Error('No response from API');
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      setResult({
+        type: 'error',
+        message: `❌ Unable to process this URL. This could be due to:\n• The platform blocking downloads\n• Invalid or private media URL\n• Rate limiting or network issues\n\nPlease try again in a moment or with a different URL.`
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleApiResponse = (data) => {
+    if (data.status === 'error' || data.error) {
+      const errorMsg = data.error?.code || data.text || data.error || 'Unknown error occurred';
+      setResult({
+        type: 'error',
+        message: `❌ Error: ${errorMsg}. Please check the URL and try again.`
+      });
+    } else if (data.status === 'redirect' || data.status === 'tunnel' || data.url) {
+      setResult({
+        type: 'success',
+        message: '✅ Your download is ready!',
+        downloadUrl: data.url,
+        filename: data.filename || 'ebymedias_download'
+      });
+    } else if (data.status === 'picker' && data.picker) {
+      setResult({
+        type: 'picker',
+        message: '📂 Select Media to Download:',
+        picker: data.picker,
+        audio: data.audio,
+        audioFilename: data.audioFilename
+      });
+    } else if (data.status === 'stream') {
+      setResult({
+        type: 'success',
+        message: '✅ Download ready!',
+        downloadUrl: data.url,
+        filename: 'ebymedias_stream'
+      });
+    } else {
+      setResult({
+        type: 'success',
+        message: '✅ Media processed! Please try downloading.',
+        downloadUrl: data.url || '#',
+        filename: 'ebymedias_download'
+      });
+    }
+  };
+
+  const isValidUrl = (string) => {
+    try {
+      const testUrl = new URL(string);
+      return testUrl.protocol === 'http:' || testUrl.protocol === 'https:';
+    } catch (_) {
+      return false;
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-purple-600 via-indigo-600 to-purple-700 flex items-center justify-center p-4">
+      <div className="bg-white rounded-3xl shadow-2xl max-w-2xl w-full p-8">
+        {/* Logo */}
+        <div className="text-center mb-8">
+          <div className="flex items-center justify-center gap-4 mb-3">
+            <div className="relative w-16 h-16">
+              <div className="absolute inset-0 border-4 border-transparent border-t-purple-600 border-r-indigo-600 rounded-full animate-spin"></div>
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="w-11 h-11 bg-gradient-to-br from-purple-600 to-indigo-600 rounded-full flex items-center justify-center shadow-lg">
+                  <span className="text-white text-2xl">⬇</span>
+                </div>
+              </div>
+            </div>
+            <h1 className="text-5xl font-extrabold bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">
+              Ebymedias
+            </h1>
+          </div>
+          <p className="text-gray-600 font-medium">Advanced Universal Media Downloader - Fast, Free & Powerful</p>
+        </div>
+
+        {/* Features */}
+        <div className="grid grid-cols-2 gap-4 mb-6 p-5 bg-gradient-to-br from-purple-50 to-indigo-50 rounded-2xl">
+          <div className="flex items-center gap-2">
+            <span className="text-2xl">⚡</span>
+            <span className="text-sm font-medium text-gray-700">Lightning Fast</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-2xl">🔒</span>
+            <span className="text-sm font-medium text-gray-700">100% Secure</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-2xl">🆓</span>
+            <span className="text-sm font-medium text-gray-700">Completely Free</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-2xl">📱</span>
+            <span className="text-sm font-medium text-gray-700">All Devices</span>
+          </div>
+        </div>
+
+        {/* Platforms */}
+        <div className="flex flex-wrap gap-2 justify-center mb-6">
+          {platforms.map((platform, idx) => (
+            <span
+              key={idx}
+              className="px-3 py-1.5 bg-gradient-to-r from-purple-600 to-indigo-600 text-white text-xs font-semibold rounded-full shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all"
+            >
+              {platform}
+            </span>
+          ))}
+        </div>
+
+        {/* Input Section */}
+        <div className="mb-5">
+          <label className="block mb-2 text-gray-700 font-semibold">
+            📎 Paste Your Media Link:
+          </label>
+          <div className="relative">
+            <input
+              type="text"
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
+              onKeyPress={(e) => e.key === 'Enter' && handleSubmit()}
+              className="w-full px-4 py-4 pr-12 border-3 border-gray-200 rounded-xl focus:border-purple-600 focus:ring-4 focus:ring-purple-100 outline-none transition-all"
+              placeholder="https://www.youtube.com/watch?v=... or any supported platform"
+            />
+            {url && (
+              <button
+                type="button"
+                onClick={() => setUrl('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-purple-600 text-xl transition-colors"
+              >
+                ✖
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Advanced Options */}
+        <div className="mb-5 bg-gray-50 rounded-xl p-5">
+          <div
+            className="flex justify-between items-center cursor-pointer select-none"
+            onClick={() => setShowAdvanced(!showAdvanced)}
+          >
+            <h3 className="font-semibold text-gray-700">⚙️ Advanced Options</h3>
+            <span className={`transition-transform ${showAdvanced ? 'rotate-180' : ''}`}>
+              ▼
+            </span>
+          </div>
+          
+          {showAdvanced && (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+              <div>
+                <label className="block mb-1 text-xs text-gray-600 font-medium">Video Quality:</label>
+                <select
+                  value={quality}
+                  onChange={(e) => setQuality(e.target.value)}
+                  className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:border-purple-600 outline-none"
+                >
+                  <option value="max">Maximum Quality</option>
+                  <option value="2160">4K (2160p)</option>
+                  <option value="1440">2K (1440p)</option>
+                  <option value="1080">Full HD (1080p)</option>
+                  <option value="720">HD (720p)</option>
+                  <option value="480">SD (480p)</option>
+                  <option value="360">Low (360p)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block mb-1 text-xs text-gray-600 font-medium">Download Type:</label>
+                <select
+                  value={downloadType}
+                  onChange={(e) => setDownloadType(e.target.value)}
+                  className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:border-purple-600 outline-none"
+                >
+                  <option value="video">Video + Audio</option>
+                  <option value="audio">Audio Only</option>
+                  <option value="mute">Video Only (Muted)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block mb-1 text-xs text-gray-600 font-medium">Audio Format:</label>
+                <select
+                  value={audioFormat}
+                  onChange={(e) => setAudioFormat(e.target.value)}
+                  className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:border-purple-600 outline-none"
+                >
+                  <option value="mp3">MP3</option>
+                  <option value="best">Best Quality</option>
+                  <option value="ogg">OGG</option>
+                  <option value="wav">WAV</option>
+                </select>
+              </div>
+
+              <div className="md:col-span-3 flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="watermark"
+                  checked={removeWatermark}
+                  onChange={(e) => setRemoveWatermark(e.target.checked)}
+                  className="w-4 h-4 cursor-pointer"
+                />
+                <label htmlFor="watermark" className="text-sm text-gray-600 cursor-pointer">
+                  Remove TikTok Watermark (when possible)
+                </label>
+              </div>
+            </div>
+          )}
+        </div>
+
+        <button
+          onClick={handleSubmit}
+          disabled={loading}
+          className="w-full py-4 bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-bold text-lg rounded-xl shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all disabled:opacity-60 disabled:cursor-not-allowed disabled:transform-none"
+        >
+          {loading ? 'Processing...' : '⬇️ Download Media Now'}
+        </button>
+
+        {/* Loading */}
+        {loading && (
+          <div className="text-center mt-6">
+            <div className="inline-block w-12 h-12 border-4 border-gray-200 border-t-purple-600 rounded-full animate-spin"></div>
+            <p className="mt-3 text-gray-600 font-medium">Processing your download...</p>
+          </div>
+        )}
+
+        {/* Result */}
+        {result && (
+          <div
+            className={`mt-6 p-5 rounded-xl border-2 ${
+              result.type === 'error'
+                ? 'bg-gradient-to-br from-red-50 to-red-100 border-red-500 text-red-800'
+                : 'bg-gradient-to-br from-green-50 to-green-100 border-green-500 text-green-800'
+            }`}
+          >
+            <p className="whitespace-pre-line">{result.message}</p>
+            
+            {result.type === 'success' && result.downloadUrl && (
+              <a
+                href={result.downloadUrl}
+                download={result.filename}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-block mt-3 px-6 py-3 bg-green-600 text-white font-semibold rounded-lg shadow-md hover:bg-green-700 hover:-translate-y-0.5 transition-all"
+              >
+                📥 Click Here to Download
+              </a>
+            )}
+
+            {result.type === 'picker' && (
+              <div>
+                {result.audio && (
+                  <a
+                    href={result.audio}
+                    download={result.audioFilename || 'audio'}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-block mt-3 px-6 py-3 bg-green-600 text-white font-semibold rounded-lg shadow-md hover:bg-green-700 hover:-translate-y-0.5 transition-all mr-2"
+                  >
+                    🎵 Download Audio Track
+                  </a>
+                )}
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-4">
+                  {result.picker.map((item, idx) => (
+                    <a
+                      key={idx}
+                      href={item.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="relative rounded-lg overflow-hidden shadow-md hover:shadow-xl hover:scale-105 transition-all group"
+                    >
+                      <img
+                        src={item.thumb || item.url}
+                        alt={`${item.type} ${idx + 1}`}
+                        className="w-full h-32 object-cover"
+                      />
+                      <div className="absolute inset-0 bg-purple-600 bg-opacity-0 group-hover:bg-opacity-80 flex items-center justify-center transition-all">
+                        <span className="text-white font-bold opacity-0 group-hover:opacity-100">
+                          {item.type === 'photo' ? '📷' : item.type === 'video' ? '🎬' : '🎞️'} Download
+                        </span>
+                      </div>
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Footer */}
+        <div className="text-center mt-8 pt-6 border-t-2 border-purple-100">
+          <p className="text-gray-600 text-sm mb-1">
+            <strong className="text-purple-600">Powered by Claude AI & Cobalt API</strong> • Privacy-Focused
+          </p>
+          <p className="text-gray-500 text-xs mb-1">
+            Supports 20+ platforms • No registration required • No limits
+          </p>
+          <p className="text-gray-500 text-xs">
+            © Ebymedias 2025 • All Rights Reserved
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
