@@ -12,7 +12,7 @@
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             background: #111b21;
             color: #e9edef;
             height: 100vh;
@@ -36,7 +36,7 @@
             align-items: center;
             justify-content: center;
             z-index: 1000;
-            padding: 20px;
+            padding: 16px;
         }
 
         body.light .login-screen {
@@ -45,38 +45,38 @@
 
         .login-box {
             background: #1f2c34;
-            padding: 40px;
-            border-radius: 16px;
-            max-width: 400px;
+            padding: 24px;
+            border-radius: 12px;
+            max-width: 360px;
             width: 100%;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
         }
 
         body.light .login-box {
             background: white;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
         }
 
         .login-header {
             text-align: center;
-            margin-bottom: 30px;
+            margin-bottom: 20px;
         }
 
         .login-icon {
-            width: 80px;
-            height: 80px;
+            width: 60px;
+            height: 60px;
             background: #25d366;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            margin: 0 auto 20px;
-            font-size: 40px;
+            margin: 0 auto 16px;
+            font-size: 30px;
         }
 
         .login-header h1 {
-            font-size: 24px;
-            margin-bottom: 8px;
+            font-size: 20px;
+            margin-bottom: 6px;
             color: #e9edef;
         }
 
@@ -85,31 +85,30 @@
         }
 
         .login-header p {
-            font-size: 14px;
+            font-size: 13px;
             color: #8696a0;
         }
 
         .input-group {
-            margin-bottom: 20px;
+            margin-bottom: 16px;
         }
 
         .input-group label {
             display: block;
-            margin-bottom: 8px;
-            font-size: 14px;
+            margin-bottom: 6px;
+            font-size: 13px;
             color: #8696a0;
         }
 
         .input-group input {
             width: 100%;
-            padding: 14px;
+            padding: 12px;
             background: #2a3942;
             border: 1px solid #3b4a54;
-            border-radius: 8px;
-            font-size: 16px;
+            border-radius: 6px;
+            font-size: 15px;
             color: #e9edef;
             outline: none;
-            transition: all 0.2s;
         }
 
         body.light .input-group input {
@@ -124,13 +123,12 @@
 
         .btn {
             width: 100%;
-            padding: 14px;
+            padding: 12px;
             border: none;
-            border-radius: 8px;
-            font-size: 16px;
+            border-radius: 6px;
+            font-size: 15px;
             font-weight: 600;
             cursor: pointer;
-            transition: all 0.2s;
         }
 
         .btn-primary {
@@ -138,19 +136,11 @@
             color: white;
         }
 
-        .btn-primary:hover {
-            background: #20bd5a;
-        }
-
         .btn-secondary {
             background: transparent;
             border: 1px solid #25d366;
             color: #25d366;
-            margin-top: 12px;
-        }
-
-        .btn-secondary:hover {
-            background: rgba(37, 211, 102, 0.1);
+            margin-top: 10px;
         }
 
         .hidden {
@@ -167,7 +157,7 @@
         /* Header */
         .chat-header {
             background: #202c33;
-            padding: 12px 20px;
+            padding: 10px 16px;
             display: flex;
             align-items: center;
             justify-content: space-between;
@@ -182,23 +172,34 @@
         .header-left {
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 10px;
+            flex: 1;
+            min-width: 0;
         }
 
         .chat-avatar {
-            width: 40px;
-            height: 40px;
+            width: 36px;
+            height: 36px;
             background: #25d366;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 20px;
+            font-size: 18px;
+            flex-shrink: 0;
+        }
+
+        .chat-info {
+            flex: 1;
+            min-width: 0;
         }
 
         .chat-info h2 {
-            font-size: 16px;
+            font-size: 15px;
             color: #e9edef;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         body.light .chat-info h2 {
@@ -206,18 +207,22 @@
         }
 
         .chat-info p {
-            font-size: 13px;
+            font-size: 12px;
             color: #8696a0;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         .header-actions {
             display: flex;
-            gap: 12px;
+            gap: 8px;
+            flex-shrink: 0;
         }
 
         .icon-btn {
-            width: 40px;
-            height: 40px;
+            width: 36px;
+            height: 36px;
             background: transparent;
             border: none;
             border-radius: 50%;
@@ -226,31 +231,115 @@
             justify-content: center;
             cursor: pointer;
             color: #8696a0;
-            transition: all 0.2s;
+            font-size: 18px;
         }
 
-        .icon-btn:hover {
+        .icon-btn:active {
             background: #2a3942;
         }
 
-        body.light .icon-btn:hover {
+        body.light .icon-btn:active {
             background: #e9edef;
         }
 
-        .icon-btn.admin {
-            background: #25d366;
-            color: white;
+        /* Menu */
+        .menu-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 999;
         }
 
-        .icon-btn.admin:hover {
-            background: #20bd5a;
+        .side-menu {
+            position: fixed;
+            top: 0;
+            right: -280px;
+            width: 280px;
+            height: 100%;
+            background: #202c33;
+            z-index: 1000;
+            transition: right 0.3s;
+            overflow-y: auto;
+        }
+
+        body.light .side-menu {
+            background: white;
+        }
+
+        .side-menu.open {
+            right: 0;
+        }
+
+        .menu-header {
+            padding: 20px 16px;
+            border-bottom: 1px solid #2a3942;
+        }
+
+        body.light .menu-header {
+            border-bottom: 1px solid #d1d7db;
+        }
+
+        .menu-header h3 {
+            font-size: 18px;
+            color: #e9edef;
+        }
+
+        body.light .menu-header h3 {
+            color: #111b21;
+        }
+
+        .menu-item {
+            padding: 16px;
+            border-bottom: 1px solid #2a3942;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: #e9edef;
+        }
+
+        body.light .menu-item {
+            border-bottom: 1px solid #d1d7db;
+            color: #111b21;
+        }
+
+        .menu-item:active {
+            background: #2a3942;
+        }
+
+        body.light .menu-item:active {
+            background: #f0f2f5;
+        }
+
+        .menu-icon {
+            font-size: 20px;
+            width: 24px;
+            text-align: center;
+        }
+
+        .menu-text {
+            flex: 1;
+        }
+
+        .menu-label {
+            font-size: 15px;
+            font-weight: 500;
+        }
+
+        .menu-desc {
+            font-size: 13px;
+            color: #8696a0;
+            margin-top: 2px;
         }
 
         /* Messages Area */
         .messages-area {
             flex: 1;
             overflow-y: auto;
-            padding: 20px;
+            padding: 12px;
             background: #0b141a;
             background-image: 
                 repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(255,255,255,.02) 10px, rgba(255,255,255,.02) 20px);
@@ -263,21 +352,20 @@
         }
 
         .messages-wrapper {
-            max-width: 1000px;
-            margin: 0 auto;
+            max-width: 100%;
         }
 
         .date-divider {
             text-align: center;
-            margin: 20px 0;
+            margin: 12px 0;
         }
 
         .date-badge {
             display: inline-block;
-            padding: 6px 12px;
+            padding: 4px 10px;
             background: #202c33;
-            border-radius: 8px;
-            font-size: 12px;
+            border-radius: 6px;
+            font-size: 11px;
             color: #8696a0;
         }
 
@@ -288,7 +376,7 @@
 
         .message {
             display: flex;
-            margin-bottom: 12px;
+            margin-bottom: 8px;
             animation: slideIn 0.2s ease-out;
         }
 
@@ -302,11 +390,12 @@
         }
 
         .message-bubble {
-            max-width: 65%;
-            padding: 8px 12px;
+            max-width: 80%;
+            padding: 6px 10px;
             border-radius: 8px;
             position: relative;
             box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+            word-wrap: break-word;
         }
 
         .message:not(.own) .message-bubble {
@@ -330,13 +419,13 @@
         .message-header {
             display: flex;
             align-items: center;
-            gap: 8px;
-            margin-bottom: 4px;
+            gap: 6px;
+            margin-bottom: 2px;
         }
 
         .message-sender {
             font-weight: 600;
-            font-size: 14px;
+            font-size: 13px;
             color: #25d366;
         }
 
@@ -345,14 +434,13 @@
         }
 
         .admin-badge {
-            font-size: 12px;
+            font-size: 11px;
         }
 
         .message-text {
             font-size: 14px;
             line-height: 1.4;
             color: #e9edef;
-            word-wrap: break-word;
         }
 
         body.light .message-text {
@@ -367,37 +455,30 @@
             color: #111b21;
         }
 
-        .message-image {
-            max-width: 100%;
-            border-radius: 8px;
-            display: block;
-            margin-top: 4px;
-        }
-
         .message-footer {
             display: flex;
             align-items: center;
             justify-content: flex-end;
             gap: 4px;
-            margin-top: 4px;
+            margin-top: 2px;
         }
 
         .message-time {
-            font-size: 11px;
+            font-size: 10px;
             color: #8696a0;
         }
 
         .delete-btn {
             position: absolute;
-            top: -8px;
-            right: -8px;
-            width: 24px;
-            height: 24px;
+            top: -6px;
+            right: -6px;
+            width: 20px;
+            height: 20px;
             background: #ea4335;
             border: 2px solid #0b141a;
             border-radius: 50%;
             color: white;
-            font-size: 14px;
+            font-size: 12px;
             font-weight: bold;
             display: none;
             align-items: center;
@@ -406,29 +487,25 @@
             z-index: 10;
         }
 
-        .message:hover .delete-btn {
+        .message:active .delete-btn {
             display: flex;
-        }
-
-        .delete-btn:hover {
-            background: #c5221f;
         }
 
         .empty-state {
             text-align: center;
-            padding: 60px 20px;
+            padding: 40px 20px;
             color: #8696a0;
         }
 
         .empty-icon {
-            font-size: 64px;
-            margin-bottom: 16px;
+            font-size: 48px;
+            margin-bottom: 12px;
         }
 
         /* Input Area */
         .input-area {
             background: #202c33;
-            padding: 12px 20px;
+            padding: 8px 12px;
             border-top: 1px solid #2a3942;
         }
 
@@ -440,18 +517,16 @@
         .input-wrapper {
             display: flex;
             align-items: center;
-            gap: 12px;
-            max-width: 1000px;
-            margin: 0 auto;
+            gap: 8px;
         }
 
         .message-input {
             flex: 1;
-            padding: 10px 16px;
+            padding: 10px 14px;
             background: #2a3942;
             border: none;
-            border-radius: 24px;
-            font-size: 15px;
+            border-radius: 20px;
+            font-size: 14px;
             color: #e9edef;
             outline: none;
         }
@@ -462,8 +537,8 @@
         }
 
         .send-btn {
-            width: 48px;
-            height: 48px;
+            width: 42px;
+            height: 42px;
             background: #25d366;
             border: none;
             border-radius: 50%;
@@ -472,12 +547,12 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: all 0.2s;
+            font-size: 18px;
+            flex-shrink: 0;
         }
 
-        .send-btn:hover {
+        .send-btn:active {
             background: #20bd5a;
-            transform: scale(1.05);
         }
 
         /* Admin Panel */
@@ -492,14 +567,14 @@
             align-items: center;
             justify-content: center;
             z-index: 2000;
-            padding: 20px;
+            padding: 16px;
         }
 
         .admin-content {
             background: #202c33;
-            padding: 32px;
-            border-radius: 16px;
-            max-width: 500px;
+            padding: 24px;
+            border-radius: 12px;
+            max-width: 400px;
             width: 100%;
         }
 
@@ -509,34 +584,33 @@
 
         .admin-header {
             text-align: center;
-            margin-bottom: 24px;
+            margin-bottom: 20px;
         }
 
         .admin-header h2 {
-            font-size: 24px;
+            font-size: 20px;
             color: #25d366;
-            margin-bottom: 8px;
+            margin-bottom: 6px;
         }
 
         .admin-header p {
             color: #8696a0;
-            font-size: 14px;
+            font-size: 13px;
         }
 
         .admin-actions {
             display: flex;
             flex-direction: column;
-            gap: 12px;
+            gap: 10px;
         }
 
         .admin-btn {
-            padding: 14px;
+            padding: 12px;
             border: none;
-            border-radius: 8px;
-            font-size: 15px;
+            border-radius: 6px;
+            font-size: 14px;
             font-weight: 600;
             cursor: pointer;
-            transition: all 0.2s;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -548,17 +622,9 @@
             color: white;
         }
 
-        .admin-btn.danger:hover {
-            background: #c5221f;
-        }
-
         .admin-btn.warning {
             background: #fb8c00;
             color: white;
-        }
-
-        .admin-btn.warning:hover {
-            background: #e67c00;
         }
 
         .admin-btn.close {
@@ -571,13 +637,84 @@
             color: #54656f;
         }
 
-        .admin-btn.close:hover {
-            background: #3b4a54;
+        /* DM Modal */
+        .dm-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+            padding: 16px;
+        }
+
+        .dm-content {
+            background: #202c33;
+            padding: 24px;
+            border-radius: 12px;
+            max-width: 400px;
+            width: 100%;
+        }
+
+        body.light .dm-content {
+            background: white;
+        }
+
+        .dm-header {
+            margin-bottom: 20px;
+        }
+
+        .dm-header h2 {
+            font-size: 20px;
+            color: #e9edef;
+            margin-bottom: 6px;
+        }
+
+        body.light .dm-header h2 {
+            color: #111b21;
+        }
+
+        .dm-header p {
+            color: #8696a0;
+            font-size: 13px;
+        }
+
+        .dm-form {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .dm-input {
+            width: 100%;
+            padding: 12px;
+            background: #2a3942;
+            border: 1px solid #3b4a54;
+            border-radius: 6px;
+            font-size: 14px;
+            color: #e9edef;
+            outline: none;
+        }
+
+        body.light .dm-input {
+            background: #f0f2f5;
+            border: 1px solid #d1d7db;
+            color: #111b21;
+        }
+
+        .dm-textarea {
+            min-height: 100px;
+            resize: vertical;
+            font-family: inherit;
         }
 
         /* Scrollbar */
         ::-webkit-scrollbar {
-            width: 6px;
+            width: 5px;
         }
 
         ::-webkit-scrollbar-track {
@@ -592,20 +729,6 @@
         body.light ::-webkit-scrollbar-thumb {
             background: #c4c4c4;
         }
-
-        @media (max-width: 768px) {
-            .message-bubble {
-                max-width: 85%;
-            }
-
-            .chat-header {
-                padding: 10px 16px;
-            }
-
-            .messages-area {
-                padding: 16px;
-            }
-        }
     </style>
 </head>
 <body>
@@ -614,8 +737,8 @@
         <div class="login-box">
             <div class="login-header">
                 <div class="login-icon">💬</div>
-                <h1>Welcome to Chat</h1>
-                <p>Enter your username to continue</p>
+                <h1>Welcome</h1>
+                <p>Enter username to continue</p>
             </div>
             <div class="input-group">
                 <label>Username</label>
@@ -658,8 +781,8 @@
                 </div>
             </div>
             <div class="header-actions">
-                <button class="icon-btn admin hidden" id="adminPanelBtn" title="Admin Panel">⚙️</button>
-                <button class="icon-btn" id="themeBtn" title="Toggle Theme">☀️</button>
+                <button class="icon-btn" id="themeBtn" title="Theme">☀️</button>
+                <button class="icon-btn" id="menuBtn" title="Menu">⋮</button>
             </div>
         </div>
 
@@ -667,17 +790,44 @@
             <div class="messages-wrapper" id="messagesWrapper">
                 <div class="empty-state">
                     <div class="empty-icon">💬</div>
-                    <p>No messages yet. Start the conversation!</p>
+                    <p>No messages yet</p>
                 </div>
             </div>
         </div>
 
         <div class="input-area">
             <div class="input-wrapper">
-                <input type="file" id="imageInput" accept="image/*" class="hidden">
-                <button class="icon-btn" id="imageBtn" title="Send Image">📷</button>
                 <input type="text" id="messageInput" class="message-input" placeholder="Type a message">
                 <button class="send-btn" id="sendBtn">➤</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Side Menu -->
+    <div id="menuOverlay" class="menu-overlay hidden"></div>
+    <div id="sideMenu" class="side-menu">
+        <div class="menu-header">
+            <h3>Menu</h3>
+        </div>
+        <div class="menu-item" id="dmMenuItem">
+            <span class="menu-icon">✉️</span>
+            <div class="menu-text">
+                <div class="menu-label">Direct Message</div>
+                <div class="menu-desc">Send private message</div>
+            </div>
+        </div>
+        <div class="menu-item admin-only hidden" id="adminMenuItem">
+            <span class="menu-icon">⚙️</span>
+            <div class="menu-text">
+                <div class="menu-label">Admin Panel</div>
+                <div class="menu-desc">Manage chat settings</div>
+            </div>
+        </div>
+        <div class="menu-item admin-only hidden" id="exportMenuItem">
+            <span class="menu-icon">📥</span>
+            <div class="menu-text">
+                <div class="menu-label">Export Chat</div>
+                <div class="menu-desc">Download chat history</div>
             </div>
         </div>
     </div>
@@ -687,18 +837,31 @@
         <div class="admin-content">
             <div class="admin-header">
                 <h2>🔐 Admin Panel</h2>
-                <p>Manage chat messages and settings</p>
+                <p>Manage chat messages</p>
             </div>
             <div class="admin-actions">
                 <button class="admin-btn danger" id="clearAllBtn">
                     🗑️ Delete All Messages
                 </button>
-                <button class="admin-btn warning" id="exportBtn">
-                    📥 Export Chat History
-                </button>
                 <button class="admin-btn close" id="closeAdminBtn">
-                    Close Panel
+                    Close
                 </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- DM Modal -->
+    <div id="dmModal" class="dm-modal hidden">
+        <div class="dm-content">
+            <div class="dm-header">
+                <h2>✉️ Direct Message</h2>
+                <p>Send a private message</p>
+            </div>
+            <div class="dm-form">
+                <input type="text" id="dmRecipient" class="dm-input" placeholder="Recipient username">
+                <textarea id="dmMessage" class="dm-input dm-textarea" placeholder="Your message..."></textarea>
+                <button class="btn btn-primary" id="sendDmBtn">Send Message</button>
+                <button class="btn btn-secondary" id="closeDmBtn">Cancel</button>
             </div>
         </div>
     </div>
@@ -719,19 +882,19 @@
 
         const ADMIN_PASSWORD = "Eberechi";
 
-        let app, database, messagesRef;
+        let app, database, messagesRef, dmsRef;
         let username = '';
         let isAdmin = false;
         let isDark = true;
 
-        // Initialize Firebase
         try {
             app = initializeApp(firebaseConfig);
             database = getDatabase(app);
             messagesRef = ref(database, 'chat-messages');
+            dmsRef = ref(database, 'direct-messages');
         } catch (error) {
-            console.error('Firebase init error:', error);
-            alert('Failed to connect to database. Please check configuration.');
+            console.error('Firebase error:', error);
+            alert('Failed to connect. Check configuration.');
         }
 
         // Event Listeners
@@ -740,14 +903,22 @@
         document.getElementById('adminSubmitBtn').addEventListener('click', loginAdmin);
         document.getElementById('backBtn').addEventListener('click', backToLogin);
         document.getElementById('themeBtn').addEventListener('click', toggleTheme);
-        document.getElementById('adminPanelBtn').addEventListener('click', toggleAdminPanel);
-        document.getElementById('imageBtn').addEventListener('click', () => {
-            alert('📷 Image upload is disabled (no Firebase Storage configured)');
-        });
+        document.getElementById('menuBtn').addEventListener('click', toggleMenu);
+        document.getElementById('menuOverlay').addEventListener('click', toggleMenu);
         document.getElementById('sendBtn').addEventListener('click', sendMessage);
         document.getElementById('clearAllBtn').addEventListener('click', clearAllMessages);
-        document.getElementById('exportBtn').addEventListener('click', exportChat);
         document.getElementById('closeAdminBtn').addEventListener('click', toggleAdminPanel);
+        document.getElementById('dmMenuItem').addEventListener('click', openDmModal);
+        document.getElementById('adminMenuItem').addEventListener('click', () => {
+            toggleMenu();
+            toggleAdminPanel();
+        });
+        document.getElementById('exportMenuItem').addEventListener('click', () => {
+            toggleMenu();
+            exportChat();
+        });
+        document.getElementById('sendDmBtn').addEventListener('click', sendDirectMessage);
+        document.getElementById('closeDmBtn').addEventListener('click', closeDmModal);
         
         document.getElementById('messageInput').addEventListener('keypress', (e) => {
             if (e.key === 'Enter') sendMessage();
@@ -788,16 +959,16 @@
                 isAdmin = true;
                 startChat();
             } else {
-                alert('❌ Invalid admin credentials!');
+                alert('❌ Invalid credentials!');
             }
         }
 
         function startChat() {
             document.getElementById('displayUsername').textContent = username;
             if (isAdmin) {
-                document.getElementById('adminPanelBtn').classList.remove('hidden');
                 document.getElementById('userStatus').innerHTML = 
                     `Admin • <span id="displayUsername">${username}</span>`;
+                document.querySelectorAll('.admin-only').forEach(el => el.classList.remove('hidden'));
             }
             document.getElementById('loginScreen').classList.add('hidden');
             document.getElementById('adminLoginScreen').classList.add('hidden');
@@ -812,165 +983,42 @@
             document.getElementById('themeBtn').textContent = isDark ? '☀️' : '🌙';
         }
 
+        function toggleMenu() {
+            const menu = document.getElementById('sideMenu');
+            const overlay = document.getElementById('menuOverlay');
+            menu.classList.toggle('open');
+            overlay.classList.toggle('hidden');
+        }
+
         function toggleAdminPanel() {
             document.getElementById('adminPanel').classList.toggle('hidden');
         }
 
-        function clearAllMessages() {
-            if (confirm('⚠️ Delete ALL messages? This cannot be undone!')) {
-                remove(messagesRef).then(() => {
-                    alert('✅ All messages deleted');
-                    toggleAdminPanel();
-                }).catch(error => {
-                    console.error('Error:', error);
-                    alert('❌ Failed to delete messages');
-                });
-            }
+        function openDmModal() {
+            toggleMenu();
+            document.getElementById('dmModal').classList.remove('hidden');
         }
 
-        function exportChat() {
-            const messages = [];
-            onValue(messagesRef, (snapshot) => {
-                snapshot.forEach(child => {
-                    messages.push(child.val());
-                });
-                
-                const chatText = messages.map(msg => 
-                    `[${formatTime(msg.timestamp)}] ${msg.username}: ${msg.text || '[Image]'}`
-                ).join('\n');
-                
-                const blob = new Blob([chatText], { type: 'text/plain' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `chat-export-${Date.now()}.txt`;
-                a.click();
-                URL.revokeObjectURL(url);
-                alert('✅ Chat exported successfully!');
-            }, { onlyOnce: true });
+        function closeDmModal() {
+            document.getElementById('dmModal').classList.add('hidden');
+            document.getElementById('dmRecipient').value = '';
+            document.getElementById('dmMessage').value = '';
         }
 
-        window.deleteMessage = async function(messageId) {
-            if (!isAdmin) return;
-            if (confirm('Delete this message?')) {
-                const msgRef = ref(database, `chat-messages/${messageId}`);
-                await remove(msgRef).catch(error => {
-                    console.error('Error:', error);
-                    alert('❌ Failed to delete message');
-                });
-            }
-        };
-
-        async function sendMessage() {
-            const input = document.getElementById('messageInput');
-            const text = input.value.trim();
+        async function sendDirectMessage() {
+            const recipient = document.getElementById('dmRecipient').value.trim();
+            const message = document.getElementById('dmMessage').value.trim();
             
-            if (text) {
+            if (recipient && message) {
                 try {
-                    await push(messagesRef, {
-                        username: username,
-                        text: text,
-                        timestamp: Date.now(),
-                        type: 'text',
-                        isAdmin: isAdmin
+                    await push(dmsRef, {
+                        from: username,
+                        to: recipient,
+                        message: message,
+                        timestamp: Date.now()
                     });
-                    input.value = '';
-                    input.focus();
+                    alert(`✅ Message sent to ${recipient}!`);
+                    closeDmModal();
                 } catch (error) {
                     console.error('Error:', error);
-                    alert('❌ Failed to send message');
-                }
-            }
-        }
-
-        function loadMessages() {
-            const messagesQuery = query(messagesRef, orderByChild('timestamp'), limitToLast(100));
-            
-            onValue(messagesQuery, (snapshot) => {
-                const wrapper = document.getElementById('messagesWrapper');
-                const messages = [];
-                
-                snapshot.forEach(child => {
-                    messages.push({ id: child.key, ...child.val() });
-                });
-
-                if (messages.length === 0) {
-                    wrapper.innerHTML = `
-                        <div class="empty-state">
-                            <div class="empty-icon">💬</div>
-                            <p>No messages yet. Start the conversation!</p>
-                        </div>
-                    `;
-                    return;
-                }
-
-                // Group messages by date
-                const messagesByDate = {};
-                messages.forEach(msg => {
-                    const date = new Date(msg.timestamp).toDateString();
-                    if (!messagesByDate[date]) messagesByDate[date] = [];
-                    messagesByDate[date].push(msg);
-                });
-
-                let html = '';
-                Object.entries(messagesByDate).forEach(([date, msgs]) => {
-                    html += `
-                        <div class="date-divider">
-                            <span class="date-badge">${formatDate(date)}</span>
-                        </div>
-                    `;
-                    
-                    msgs.forEach(msg => {
-                        const isOwn = msg.username === username;
-                        html += `
-                            <div class="message ${isOwn ? 'own' : ''}">
-                                <div class="message-bubble">
-                                    ${isAdmin ? `<button class="delete-btn" onclick="deleteMessage('${msg.id}')">×</button>` : ''}
-                                    ${!isOwn ? `
-                                        <div class="message-header">
-                                            <span class="message-sender">${escapeHtml(msg.username)}</span>
-                                            ${msg.isAdmin ? '<span class="admin-badge">👑</span>' : ''}
-                                        </div>
-                                    ` : ''}
-                                    ${msg.type === 'text' 
-                                        ? `<div class="message-text">${escapeHtml(msg.text)}</div>` 
-                                        : `<img src="${msg.imageUrl}" alt="Image" class="message-image">`
-                                    }
-                                    <div class="message-footer">
-                                        <span class="message-time">${formatTime(msg.timestamp)}</span>
-                                    </div>
-                                </div>
-                            </div>
-                        `;
-                    });
-                });
-
-                wrapper.innerHTML = html;
-                const area = document.getElementById('messagesArea');
-                area.scrollTop = area.scrollHeight;
-            });
-        }
-
-        function formatDate(dateString) {
-            const date = new Date(dateString);
-            const today = new Date().toDateString();
-            const yesterday = new Date(Date.now() - 86400000).toDateString();
-            
-            if (dateString === today) return 'Today';
-            if (dateString === yesterday) return 'Yesterday';
-            return date.toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' });
-        }
-
-        function formatTime(timestamp) {
-            const date = new Date(timestamp);
-            return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        }
-
-        function escapeHtml(text) {
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
-        }
-    </script>
-</body>
-</html>
+                    alert('
