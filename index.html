@@ -370,6 +370,21 @@
             text-align: center;
         }
 
+        .error-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 400px;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .error-icon {
+            font-size: 64px;
+            margin-bottom: 20px;
+        }
+
         .spinner {
             width: 56px;
             height: 56px;
@@ -689,8 +704,8 @@
                 <label>Username</label>
                 <input type="text" id="usernameInput" placeholder="Enter your username..." maxlength="20" autofocus>
             </div>
-            <button class="btn-primary" onclick="joinChat()">Join Chat</button>
-            <button class="btn-secondary" onclick="showAdminLogin()">Admin Login</button>
+            <button class="btn-primary" id="joinBtn">Join Chat</button>
+            <button class="btn-secondary" id="adminLoginBtn">Admin Login</button>
         </div>
     </div>
 
@@ -711,8 +726,8 @@
                 <label>Password</label>
                 <input type="password" id="adminPassword" placeholder="Admin password...">
             </div>
-            <button class="btn-primary" onclick="loginAdmin()">Login as Admin</button>
-            <button class="btn-secondary" onclick="backToUsername()">Back</button>
+            <button class="btn-primary" id="adminSubmitBtn">Login as Admin</button>
+            <button class="btn-secondary" id="backBtn">Back</button>
         </div>
     </div>
 
@@ -733,10 +748,10 @@
                     <i data-lucide="user" style="width: 16px; height: 16px;"></i>
                     <span id="displayUsername"></span>
                 </div>
-                <div class="icon-btn admin-btn hidden" id="adminBtn" onclick="toggleAdminPanel()">
+                <div class="icon-btn admin-btn hidden" id="adminBtn">
                     <i data-lucide="shield" style="width: 20px; height: 20px; color: white;"></i>
                 </div>
-                <div class="icon-btn" onclick="toggleTheme()">
+                <div class="icon-btn" id="themeBtn">
                     <i id="themeIcon" data-lucide="sun" style="width: 20px; height: 20px; color: #facc15;"></i>
                 </div>
             </div>
@@ -753,12 +768,12 @@
 
         <div class="input-area">
             <div class="input-wrapper">
-                <input type="file" id="imageInput" accept="image/*" class="hidden" onchange="handleImageUpload(event)">
-                <div class="icon-btn" onclick="document.getElementById('imageInput').click()">
+                <input type="file" id="imageInput" accept="image/*" class="hidden">
+                <div class="icon-btn" id="imageBtn">
                     <i data-lucide="image" style="width: 20px; height: 20px;"></i>
                 </div>
-                <input type="text" id="messageInput" class="message-input" placeholder="Type a message..." onkeypress="handleKeyPress(event)">
-                <button class="send-btn" onclick="sendMessage()">
+                <input type="text" id="messageInput" class="message-input" placeholder="Type a message...">
+                <button class="send-btn" id="sendBtn">
                     <i data-lucide="send" style="width: 22px; height: 22px;"></i>
                 </button>
             </div>
@@ -769,10 +784,10 @@
         <div class="admin-content">
             <h2>🔐 Admin Panel</h2>
             <div class="admin-actions">
-                <button class="admin-action-btn btn-danger" onclick="clearAllMessages()">
+                <button class="admin-action-btn btn-danger" id="clearAllBtn">
                     🗑️ Clear All Messages
                 </button>
-                <button class="admin-action-btn btn-close" onclick="toggleAdminPanel()">
+                <button class="admin-action-btn btn-close" id="closeAdminBtn">
                     Close Panel
                 </button>
             </div>
@@ -787,23 +802,35 @@
         const firebaseConfig = {
             apiKey: "AIzaSyBzUELxbbaL6Wb_M1uNhjwlZHVTorN9XJs",
             authDomain: "my-whatsapp-2c1af.firebaseapp.com",
+            databaseURL: "https://my-whatsapp-2c1af-default-rtdb.firebaseio.com",
             projectId: "my-whatsapp-2c1af",
-            storageBucket: "my-whatsapp-2c1af.firebasestorage.app",
+            storageBucket: "my-whatsapp-2c1af.appspot.com",
             messagingSenderId: "1089455460888",
             appId: "1:1089455460888:web:d0c8dea185ba6769ebe96d"
         };
 
         const ADMIN_PASSWORD = "Ebymedias";
 
-        const app = initializeApp(firebaseConfig);
-        const database = getDatabase(app);
-        const storage = getStorage(app);
-        const messagesRef = ref(database, 'ebymedias-messages');
-
+        let app, database, storage, messagesRef;
         let username = '';
         let isAdmin = false;
         let isDark = true;
 
+        // Initialize Firebase
+        function initFirebase() {
+            try {
+                app = initializeApp(firebaseConfig);
+                database = getDatabase(app);
+                storage = getStorage(app);
+                messagesRef = ref(database, 'ebymedias-messages');
+                console.log('Firebase initialized successfully');
+            } catch (error) {
+                console.error('Firebase initialization error:', error);
+                showError('Failed to connect to database. Please check your Firebase configuration.');
+            }
+        }
+
+        // Create particles
         const particlesContainer = document.getElementById('particles');
         for (let i = 0; i < 20; i++) {
             const particle = document.createElement('div');
@@ -815,92 +842,40 @@
             particlesContainer.appendChild(particle);
         }
 
-        window.joinChat = function() {
-            const input = document.getElementById('usernameInput');
-            if (input.value.trim()) {
-                username = input.value.trim();
-                startChat();
-            }
-        };
+        // Event Listeners
+        document.getElementById('joinBtn').addEventListener('click', joinChat);
+        document.getElementById('adminLoginBtn').addEventListener('click', showAdminLogin);
+        document.getElementById('adminSubmitBtn').addEventListener('click', loginAdmin);
+        document.getElementById('backBtn').addEventListener('click', backToUsername);
+        document.getElementById('themeBtn').addEventListener('click', toggleTheme);
+        document.getElementById('adminBtn').addEventListener('click', toggleAdminPanel);
+        document.getElementById('imageBtn').addEventListener('click', () => document.getElementById('imageInput').click());
+        document.getElementById('sendBtn').addEventListener('click', sendMessage);
+        document.getElementById('clearAllBtn').addEventListener('click', clearAllMessages);
+        document.getElementById('closeAdminBtn').addEventListener('click', toggleAdminPanel);
+        document.getElementById('imageInput').addEventListener('change', handleImageUpload);
+        document.getElementById('messageInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') sendMessage();
+        });
+        document.getElementById('usernameInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') joinChat();
+        });
+        document.getElementById('adminPassword').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') loginAdmin();
+        });
 
-        window.showAdminLogin = function() {
-            document.getElementById('usernameScreen').classList.add('hidden');
-            document.getElementById('adminLoginScreen').classList.remove('hidden');
-        };
-
-        window.backToUsername = function() {
-            document.getElementById('adminLoginScreen').classList.add('hidden');
-            document.getElementById('usernameScreen').classList.remove('hidden');
-        };
-
-        window.loginAdmin = function() {
-            const user = document.getElementById('adminUsername').value.trim();
-            const pass = document.getElementById('adminPassword').value;
-            
-            if (pass === ADMIN_PASSWORD && user) {
-                username = user;
-                isAdmin = true;
-                startChat();
-            } else {
-                alert('❌ Invalid admin credentials!');
-            }
-        };
-
-        function startChat() {
-            document.getElementById('displayUsername').textContent = username;
-            if (isAdmin) {
-                document.getElementById('userBadge').classList.add('admin');
-                document.getElementById('adminBtn').classList.remove('hidden');
-            }
-            document.getElementById('usernameScreen').classList.add('hidden');
-            document.getElementById('adminLoginScreen').classList.add('hidden');
-            document.getElementById('chatScreen').classList.remove('hidden');
-            document.getElementById('messageInput').focus();
-            loadMessages();
-            lucide.createIcons();
+        function showError(message) {
+            const wrapper = document.getElementById('messagesWrapper');
+            wrapper.innerHTML = `
+                <div class="error-state">
+                    <div class="error-icon">⚠️</div>
+                    <h2 style="font-size: 24px; margin-bottom: 12px; color: #dc2626;">Connection Error</h2>
+                    <p style="opacity: 0.7; max-width: 400px; line-height: 1.6;">${message}</p>
+                </div>
+            `;
         }
 
-        window.toggleTheme = function() {
-            isDark = !isDark;
-            document.body.classList.toggle('light');
-            const icon = document.getElementById('themeIcon');
-            icon.setAttribute('data-lucide', isDark ? 'sun' : 'moon');
-            icon.style.color = isDark ? '#facc15' : '#6366f1';
-            lucide.createIcons();
-        };
-
-        window.toggleAdminPanel = function() {
-            document.getElementById('adminPanel').classList.toggle('hidden');
-        };
-
-        window.clearAllMessages = function() {
-            if (confirm('⚠️ Delete ALL messages? This cannot be undone!')) {
-                remove(messagesRef);
-                toggleAdminPanel();
-            }
-        };
-
-        window.deleteMessage = async function(messageId) {
-            if (!isAdmin) return;
-            if (confirm('Delete this message?')) {
-                const msgRef = ref(database, `ebymedias-messages/${messageId}`);
-                await remove(msgRef);
-            }
-        };
-
-        window.handleKeyPress = function(event) {
-            if (event.key === 'Enter') {
-                sendMessage();
-            }
-        };
-
-        window.sendMessage = async function() {
-            const input = document.getElementById('messageInput');
-            const text = input.value.trim();
-            
-            if (text) {
-                const message = {
-                    username: username,
-                    text: text,
-                    timestamp: Date.now(),
-                    type: 'text
+        function joinChat() {
+            const input = document.getElementById('usernameInput');
+            if (input.value.trim()) {
+                username = input
