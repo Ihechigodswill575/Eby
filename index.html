@@ -480,15 +480,19 @@
             color: white;
             font-size: 12px;
             font-weight: bold;
-            display: none;
+            display: flex;
             align-items: center;
             justify-content: center;
             cursor: pointer;
             z-index: 10;
+            opacity: 0;
+            transition: opacity 0.2s;
         }
 
-        .message:active .delete-btn {
-            display: flex;
+        .message:hover .delete-btn,
+        .message:active .delete-btn,
+        .message.show-delete .delete-btn {
+            opacity: 1;
         }
 
         .empty-state {
@@ -1021,4 +1025,164 @@
                     closeDmModal();
                 } catch (error) {
                     console.error('Error:', error);
-                    alert('
+                    alert('❌ Failed to send message');
+                }
+            } else {
+                alert('Please fill in all fields');
+            }
+        }
+
+        function clearAllMessages() {
+            if (confirm('⚠️ Delete ALL messages? Cannot be undone!')) {
+                remove(messagesRef).then(() => {
+                    alert('✅ All messages deleted');
+                    toggleAdminPanel();
+                }).catch(error => {
+                    console.error('Error:', error);
+                    alert('❌ Failed to delete messages');
+                });
+            }
+        }
+
+        function exportChat() {
+            const messages = [];
+            onValue(messagesRef, (snapshot) => {
+                snapshot.forEach(child => {
+                    messages.push(child.val());
+                });
+                
+                const chatText = messages.map(msg => 
+                    `[${formatTime(msg.timestamp)}] ${msg.username}: ${msg.text || '[Image]'}`
+                ).join('\n');
+                
+                const blob = new Blob([chatText], { type: 'text/plain' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `chat-export-${Date.now()}.txt`;
+                a.click();
+                URL.revokeObjectURL(url);
+                alert('✅ Chat exported!');
+            }, { onlyOnce: true });
+        }
+
+        window.deleteMessage = async function(messageId) {
+            if (!isAdmin) return;
+            if (confirm('Delete this message?')) {
+                const msgRef = ref(database, `chat-messages/${messageId}`);
+                await remove(msgRef).catch(error => {
+                    console.error('Error:', error);
+                    alert('❌ Failed to delete');
+                });
+            }
+        };
+
+        async function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const text = input.value.trim();
+            
+            if (text) {
+                try {
+                    await push(messagesRef, {
+                        username: username,
+                        text: text,
+                        timestamp: Date.now(),
+                        type: 'text',
+                        isAdmin: isAdmin
+                    });
+                    input.value = '';
+                    input.focus();
+                } catch (error) {
+                    console.error('Error:', error);
+                    alert('❌ Failed to send');
+                }
+            }
+        }
+
+        function loadMessages() {
+            const messagesQuery = query(messagesRef, orderByChild('timestamp'), limitToLast(100));
+            
+            onValue(messagesQuery, (snapshot) => {
+                const wrapper = document.getElementById('messagesWrapper');
+                const messages = [];
+                
+                snapshot.forEach(child => {
+                    messages.push({ id: child.key, ...child.val() });
+                });
+
+                if (messages.length === 0) {
+                    wrapper.innerHTML = `
+                        <div class="empty-state">
+                            <div class="empty-icon">💬</div>
+                            <p>No messages yet</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                const messagesByDate = {};
+                messages.forEach(msg => {
+                    const date = new Date(msg.timestamp).toDateString();
+                    if (!messagesByDate[date]) messagesByDate[date] = [];
+                    messagesByDate[date].push(msg);
+                });
+
+                let html = '';
+                Object.entries(messagesByDate).forEach(([date, msgs]) => {
+                    html += `
+                        <div class="date-divider">
+                            <span class="date-badge">${formatDate(date)}</span>
+                        </div>
+                    `;
+                    
+                    msgs.forEach(msg => {
+                        const isOwn = msg.username === username;
+                        html += `
+                            <div class="message ${isOwn ? 'own' : ''}" ontouchstart="this.classList.add('show-delete')" ontouchend="setTimeout(() => this.classList.remove('show-delete'), 3000)">
+                                <div class="message-bubble">
+                                    ${isAdmin ? `<button class="delete-btn" onclick="event.stopPropagation(); deleteMessage('${msg.id}')">×</button>` : ''}
+                                    ${!isOwn ? `
+                                        <div class="message-header">
+                                            <span class="message-sender">${escapeHtml(msg.username)}</span>
+                                            ${msg.isAdmin ? '<span class="admin-badge">👑</span>' : ''}
+                                        </div>
+                                    ` : ''}
+                                    <div class="message-text">${escapeHtml(msg.text)}</div>
+                                    <div class="message-footer">
+                                        <span class="message-time">${formatTime(msg.timestamp)}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    });
+                });
+
+                wrapper.innerHTML = html;
+                const area = document.getElementById('messagesArea');
+                area.scrollTop = area.scrollHeight;
+            });
+        }
+
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            const today = new Date().toDateString();
+            const yesterday = new Date(Date.now() - 86400000).toDateString();
+            
+            if (dateString === today) return 'Today';
+            if (dateString === yesterday) return 'Yesterday';
+            return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
+        }
+
+        function formatTime(timestamp) {
+            const date = new Date(timestamp);
+            return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+    </script>
+</body>
+</html>
