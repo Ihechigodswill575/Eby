@@ -8,11 +8,8 @@
     <style>
         @keyframes fadeIn{from{opacity:0;transform:scale(0.95)}to{opacity:1;transform:scale(1)}}
         @keyframes slideIn{from{transform:translateY(-20px);opacity:0}to{transform:translateY(0);opacity:1}}
-        @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.5}}
-        @keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
         .fade-in{animation:fadeIn 0.3s ease-out}
         .slide-in{animation:slideIn 0.4s ease-out}
-        .bounce-animation{animation:bounce 1s ease-in-out infinite}
         .game-card{transition:all 0.3s cubic-bezier(0.4,0,0.2,1)}
         .game-card:hover{transform:scale(1.05) translateY(-5px)}
         .game-card:active{transform:scale(0.98)}
@@ -21,7 +18,6 @@
         @media (min-width:1024px){.sidebar-closed{transform:translateX(0)}}
         .glow-effect{box-shadow:0 0 20px rgba(6,182,212,0.3)}
         .glow-effect:hover{box-shadow:0 0 30px rgba(6,182,212,0.5)}
-        .admin-glow{box-shadow:0 0 20px rgba(234,179,8,0.5);animation:pulse 2s infinite}
         ::-webkit-scrollbar{width:8px}
         ::-webkit-scrollbar-track{background:#1f2937}
         ::-webkit-scrollbar-thumb{background:#06b6d4;border-radius:4px}
@@ -38,16 +34,12 @@
                     <h2 class="text-3xl font-bold bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent mb-2">Welcome to Godswillgames</h2>
                     <p class="text-gray-400 text-sm">Enter your username to start playing</p>
                 </div>
-                <div id="regularLogin" class="space-y-4">
-                    <div><label class="block text-sm font-medium text-gray-300 mb-2">Username</label><input type="text" id="usernameInput" class="w-full px-4 py-3 bg-gray-800 border border-cyan-500/30 rounded-lg focus:outline-none focus:border-cyan-500 text-white" placeholder="Enter your username"></div>
-                    <button onclick="regularLogin()" class="w-full bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white font-bold py-3 rounded-lg transition-all transform hover:scale-105 active:scale-95">Play Now</button>
-                    <button onclick="showAdminLogin()" class="w-full text-gray-400 hover:text-cyan-400 text-sm">Admin Login</button>
-                </div>
-                <div id="adminLogin" class="space-y-4 hidden">
-                    <div><label class="block text-sm font-medium text-yellow-400 mb-2">👑 Admin Username</label><input type="text" id="adminUsernameInput" class="w-full px-4 py-3 bg-gray-800 border border-yellow-500/30 rounded-lg focus:outline-none focus:border-yellow-500 text-white" placeholder="Admin username"></div>
-                    <div><label class="block text-sm font-medium text-yellow-400 mb-2">🔑 Admin Password</label><input type="password" id="adminPasswordInput" class="w-full px-4 py-3 bg-gray-800 border border-yellow-500/30 rounded-lg focus:outline-none focus:border-yellow-500 text-white" placeholder="Enter admin password"></div>
-                    <button onclick="adminLogin()" class="w-full bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-white font-bold py-3 rounded-lg transition-all transform hover:scale-105 active:scale-95">Admin Login</button>
-                    <button onclick="showRegularLogin()" class="w-full text-gray-400 hover:text-cyan-400 text-sm">Back to Regular Login</button>
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-2">Username</label>
+                        <input type="text" id="usernameInput" class="w-full px-4 py-3 bg-gray-800 border border-cyan-500/30 rounded-lg focus:outline-none focus:border-cyan-500 text-white" placeholder="Enter your username">
+                    </div>
+                    <button onclick="login()" class="w-full bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white font-bold py-3 rounded-lg transition-all transform hover:scale-105 active:scale-95">Play Now</button>
                 </div>
             </div>
         </div>
@@ -60,31 +52,28 @@
                     <svg id="closeIcon" class="w-6 h-6 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                 </button>
                 <div class="flex items-center gap-2">
-                    <div id="headerIcon" class="bg-gradient-to-br from-cyan-500 to-blue-500 p-2 rounded-lg glow-effect"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 4a2 2 0 114 0v1a1 1 0 001 1h3a1 1 0 011 1v3a1 1 0 01-1 1h-1a2 2 0 100 4h1a1 1 0 011 1v3a1 1 0 01-1 1h-3a1 1 0 01-1-1v-1a2 2 0 10-4 0v1a1 1 0 01-1 1H7a1 1 0 01-1-1v-3a1 1 0 00-1-1H4a2 2 0 110-4h1a1 1 0 001-1V7a1 1 0 011-1h3a1 1 0 001-1V4z"/></svg></div>
+                    <div class="bg-gradient-to-br from-cyan-500 to-blue-500 p-2 rounded-lg glow-effect">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 4a2 2 0 114 0v1a1 1 0 001 1h3a1 1 0 011 1v3a1 1 0 01-1 1h-1a2 2 0 100 4h1a1 1 0 011 1v3a1 1 0 01-1 1h-3a1 1 0 01-1-1v-1a2 2 0 10-4 0v1a1 1 0 01-1 1H7a1 1 0 01-1-1v-3a1 1 0 00-1-1H4a2 2 0 110-4h1a1 1 0 001-1V7a1 1 0 011-1h3a1 1 0 001-1V4z"/></svg>
+                    </div>
                     <h1 class="text-2xl font-bold bg-gradient-to-r from-cyan-400 via-blue-400 to-purple-400 bg-clip-text text-transparent">Godswillgames</h1>
                 </div>
             </div>
             <div class="flex items-center gap-3">
-                <div class="bg-cyan-500/20 px-3 py-1 rounded-full border border-cyan-500/30"><span class="text-sm font-semibold" id="userDisplay"></span></div>
-                <button onclick="logout()" class="text-gray-400 hover:text-red-400 p-2 hover:bg-white/10 rounded-lg"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg></button>
+                <div class="bg-cyan-500/20 px-3 py-1 rounded-full border border-cyan-500/30">
+                    <span class="text-sm font-semibold" id="userDisplay"></span>
+                </div>
+                <button onclick="logout()" class="text-gray-400 hover:text-red-400 p-2 hover:bg-white/10 rounded-lg">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+                </button>
             </div>
         </div>
     </header>
     <div class="flex">
         <aside id="sidebar" class="sidebar-closed fixed lg:sticky top-[73px] left-0 h-[calc(100vh-73px)] z-30 w-64 bg-gray-900/95 border-r border-cyan-500/30 transition-transform duration-300 overflow-y-auto">
             <div class="p-4 space-y-2">
-                <div class="mb-6"><h2 class="text-xs font-semibold text-cyan-400 mb-3 uppercase">Categories</h2><div id="categoryButtons" class="space-y-2"></div></div>
-                <div id="adminPanel" class="hidden pt-4 border-t border-yellow-500/20">
-                    <div class="bg-gradient-to-br from-yellow-500/20 to-orange-500/20 rounded-lg p-4 border border-yellow-500/30 admin-glow">
-                        <div class="flex items-center gap-2 mb-3"><span class="text-2xl bounce-animation">👑</span><h3 class="text-sm font-bold text-yellow-400">Admin Powers</h3></div>
-                        <div class="space-y-2 text-xs">
-                            <button onclick="toggleGodMode()" id="godModeBtn" class="w-full bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-300 py-2 rounded-lg text-left px-3 font-semibold">⚡ God Mode: OFF</button>
-                            <button onclick="unlockAllGames()" class="w-full bg-green-500/20 hover:bg-green-500/30 text-green-300 py-2 rounded-lg text-left px-3 font-semibold">🔓 Unlock All Games</button>
-                            <button onclick="maxScore()" class="w-full bg-purple-500/20 hover:bg-purple-500/30 text-purple-300 py-2 rounded-lg text-left px-3 font-semibold">🏆 Max All Scores</button>
-                            <button onclick="infiniteLives()" class="w-full bg-red-500/20 hover:bg-red-500/30 text-red-300 py-2 rounded-lg text-left px-3 font-semibold">❤️ Infinite Lives</button>
-                            <button onclick="speedHack()" id="speedBtn" class="w-full bg-blue-500/20 hover:bg-blue-500/30 text-blue-300 py-2 rounded-lg text-left px-3 font-semibold">🚀 Speed Hack: 1x</button>
-                        </div>
-                    </div>
+                <div class="mb-6">
+                    <h2 class="text-xs font-semibold text-cyan-400 mb-3 uppercase">Categories</h2>
+                    <div id="categoryButtons" class="space-y-2"></div>
                 </div>
                 <div class="pt-4">
                     <div class="bg-gradient-to-br from-cyan-500/10 to-blue-500/10 rounded-lg p-4 border border-cyan-500/20">
@@ -92,7 +81,7 @@
                         <div class="space-y-2 text-xs text-gray-300">
                             <div class="flex justify-between"><span>Games Played:</span><span class="font-bold text-white" id="gamesPlayed">0</span></div>
                             <div class="flex justify-between"><span>High Score:</span><span class="font-bold text-yellow-400" id="highScore">0</span></div>
-                            <div class="flex justify-between"><span>Rank:</span><span class="font-bold text-cyan-400">Beginner</span></div>
+                            <div class="flex justify-between"><span>Rank:</span><span class="font-bold text-cyan-400" id="rankDisplay">Beginner</span></div>
                         </div>
                     </div>
                 </div>
@@ -105,10 +94,9 @@
                     <h2 class="text-3xl lg:text-4xl font-bold mb-2 bg-gradient-to-r from-cyan-400 via-blue-400 to-purple-400 bg-clip-text text-transparent"><span id="welcomeUser">Welcome</span> to Godswillgames</h2>
                     <p class="text-gray-300 text-sm lg:text-base">Dive into 30 amazing games. Play instantly - no downloads!</p>
                 </div>
-                <div id="adminBanner" class="mb-6 bg-gradient-to-r from-yellow-500/20 to-orange-500/20 rounded-xl p-4 border border-yellow-500/30 hidden">
-                    <div class="flex items-center gap-3"><span class="text-3xl bounce-animation">👑</span><div><h3 class="text-yellow-400 font-bold">Admin Mode Active</h3><p class="text-gray-300 text-sm">Full admin powers unlocked!</p></div></div>
+                <div class="mb-6 overflow-x-auto pb-2">
+                    <div class="flex gap-2" id="filterPills"></div>
                 </div>
-                <div class="mb-6 overflow-x-auto pb-2"><div class="flex gap-2" id="filterPills"></div></div>
                 <div id="gamesGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 lg:gap-6"></div>
             </div>
         </main>
@@ -116,32 +104,30 @@
     <div id="gameModal" class="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4 fade-in hidden">
         <div class="bg-gray-900 rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-auto border-2 border-cyan-500/50">
             <div class="sticky top-0 bg-gray-900/95 border-b border-cyan-500/30 p-4 flex justify-between items-center">
-                <div class="flex items-center gap-3"><span class="text-4xl" id="modalIcon"></span><div><h2 class="text-xl lg:text-2xl font-bold" id="modalTitle"></h2><span class="text-sm text-cyan-400" id="modalCategory"></span></div></div>
-                <button id="closeModal" class="text-white hover:text-cyan-400 p-2 hover:bg-white/10 rounded-lg"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
+                <div class="flex items-center gap-3">
+                    <span class="text-4xl" id="modalIcon"></span>
+                    <div>
+                        <h2 class="text-xl lg:text-2xl font-bold" id="modalTitle"></h2>
+                        <span class="text-sm text-cyan-400" id="modalCategory"></span>
+                    </div>
+                </div>
+                <button id="closeModal" class="text-white hover:text-cyan-400 p-2 hover:bg-white/10 rounded-lg">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
             </div>
             <div class="p-6 lg:p-8">
-                <div id="modalGameDisplay" class="rounded-xl aspect-video flex items-center justify-center text-6xl relative"><div id="godModeIndicator" class="hidden absolute top-4 right-4 bg-yellow-500 text-black px-3 py-1 rounded-full text-sm font-bold">⚡ GOD MODE</div></div>
+                <div id="modalGameDisplay" class="rounded-xl aspect-video flex items-center justify-center text-6xl relative"></div>
                 <div class="mt-6 space-y-4">
-                    <div class="bg-gray-800/50 rounded-lg p-4 border border-cyan-500/20"><h3 class="text-cyan-400 font-semibold mb-2">How to Play</h3><p class="text-gray-300 text-sm">Use mouse or touch controls. Tap to interact and collect points!</p></div>
+                    <div class="bg-gray-800/50 rounded-lg p-4 border border-cyan-500/20">
+                        <h3 class="text-cyan-400 font-semibold mb-2">How to Play</h3>
+                        <p class="text-gray-300 text-sm" id="gameInstructions">Use mouse or touch controls. Tap to interact and collect points!</p>
+                    </div>
                     <button onclick="startGame()" class="w-full bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white font-bold py-4 rounded-xl transform hover:scale-105 active:scale-95">🎮 Start Playing</button>
                 </div>
             </div>
         </div>
     </div>
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        
-        const firebaseConfig = {
-            apiKey: "AIzaSyBzUELxbbaL6Wb_M1uNhjwlZHVTorN9XJs",
-            authDomain: "my-whatsapp-2c1af.firebaseapp.com",
-            projectId: "my-whatsapp-2c1af",
-            storageBucket: "my-whatsapp-2c1af.firebasestorage.app",
-            messagingSenderId: "1089455460888",
-            appId: "1:1089455460888:web:d0c8dea185ba6769ebe96d"
-        };
-        
-        const app = initializeApp(firebaseConfig);
-        
+    <script>
         const games=[
             {id:1,name:"Color Match",category:"Puzzle",icon:"🎨",color:"from-purple-500 to-pink-500"},
             {id:2,name:"Block Breaker",category:"Puzzle",icon:"🧱",color:"from-blue-500 to-cyan-500"},
@@ -174,26 +160,153 @@
             {id:29,name:"Space Colony",category:"Strategy",icon:"🛸",color:"from-indigo-600 to-purple-600"},
             {id:30,name:"Battle Royale",category:"Strategy",icon:"💥",color:"from-red-500 to-pink-500"}
         ];
-        function regularLogin(){const u=document.getElementById('usernameInput').value.trim();if(u){document.getElementById('loginModal').classList.add('hidden');document.getElementById('userDisplay').textContent=u;document.getElementById('welcomeUser').textContent='Welcome '+u;initializeApp()}else alert('Please enter a username')}
-        function showAdminLogin(){document.getElementById('regularLogin').classList.add('hidden');document.getElementById('adminLogin').classList.remove('hidden')}
-        function showRegularLogin(){document.getElementById('adminLogin').classList.add('hidden');document.getElementById('regularLogin').classList.remove('hidden')}
-        function adminLogin(){const u=document.getElementById('adminUsernameInput').value.trim(),p=document.getElementById('adminPasswordInput').value;if(u==='admin'&&p==='EBERECHI'){document.getElementById('loginModal').classList.add('hidden');document.getElementById('userDisplay').textContent='👑 '+u;document.getElementById('adminPanel').classList.remove('hidden');document.getElementById('adminBanner').classList.remove('hidden');document.getElementById('headerIcon').classList.add('admin-glow');initializeApp()}else alert('Invalid admin credentials')}
-        function logout(){location.reload()}
-        document.getElementById('menuBtn').addEventListener('click',function(){const s=document.getElementById('sidebar'),o=document.getElementById('overlay'),m=document.getElementById('menuIcon'),c=document.getElementById('closeIcon');s.classList.toggle('sidebar-open');s.classList.toggle('sidebar-closed');o.classList.toggle('hidden');m.classList.toggle('hidden');c.classList.toggle('hidden')});
-        document.getElementById('overlay').addEventListener('click',function(){document.getElementById('menuBtn').click()});
-        function initializeApp(){renderGames();renderCategories();renderFilterPills()}
-        function renderGames(f='All'){const g=document.getElementById('gamesGrid'),filtered=f==='All'?games:games.filter(x=>x.category===f);g.innerHTML=filtered.map(game=>`<div class="game-card bg-gradient-to-br ${game.color} rounded-xl p-6 cursor-pointer border-2 border-white/10 hover:border-white/30 shadow-xl" onclick="openGame(${game.id})"><div class="text-6xl mb-4">${game.icon}</div><h3 class="text-xl font-bold text-white mb-2">${game.name}</h3><span class="text-sm text-white/80">${game.category}</span></div>`).join('')}
-        function renderCategories(){const cats=['All',...new Set(games.map(g=>g.category))],c=document.getElementById('categoryButtons');c.innerHTML=cats.map(cat=>`<button onclick="filterGames('${cat}')" class="w-full text-left px-4 py-2 rounded-lg hover:bg-cyan-500/20 text-gray-300 hover:text-white">${cat}</button>`).join('')}
-        function renderFilterPills(){const cats=['All',...new Set(games.map(g=>g.category))],c=document.getElementById('filterPills');c.innerHTML=cats.map(cat=>`<button onclick="filterGames('${cat}')" class="px-4 py-2 rounded-full bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 text-sm font-semibold whitespace-nowrap">${cat}</button>`).join('')}
-        function filterGames(cat){renderGames(cat)}
-        function openGame(id){const game=games.find(g=>g.id===id);document.getElementById('modalIcon').textContent=game.icon;document.getElementById('modalTitle').textContent=game.name;document.getElementById('modalCategory').textContent=game.category;document.getElementById('modalGameDisplay').className=`rounded-xl aspect-video flex items-center justify-center text-white text-6xl shadow-xl relative overflow-hidden bg-gradient-to-br ${game.color}`;document.getElementById('modalGameDisplay').innerHTML=`<div id="godModeIndicator" class="hidden absolute top-4 right-4 bg-yellow-500 text-black px-3 py-1 rounded-full text-sm font-bold">⚡ GOD MODE</div>${game.icon}`;document.getElementById('gameModal').classList.remove('hidden')}
-        document.getElementById('closeModal').addEventListener('click',function(){document.getElementById('gameModal').classList.add('hidden')});
-        function startGame(){
+
+        let currentUser = null;
+        let userStats = {gamesPlayed: 0, highScore: 0};
+
+        function login() {
+            const username = document.getElementById('usernameInput').value.trim();
+            if (!username) {
+                alert('Please enter a username');
+                return;
+            }
+
+            currentUser = username;
+            
+            // Load stats from localStorage
+            const savedStats = localStorage.getItem('userStats_' + username);
+            if (savedStats) {
+                userStats = JSON.parse(savedStats);
+            } else {
+                userStats = {gamesPlayed: 0, highScore: 0};
+            }
+            
+            document.getElementById('loginModal').classList.add('hidden');
+            document.getElementById('userDisplay').textContent = username;
+            document.getElementById('welcomeUser').textContent = 'Welcome ' + username;
+            updateStatsDisplay();
+            initializeApp();
+        }
+
+        function logout() {
+            location.reload();
+        }
+
+        function saveStats() {
+            if (currentUser) {
+                localStorage.setItem('userStats_' + currentUser, JSON.stringify(userStats));
+            }
+        }
+
+        function updateStatsDisplay() {
+            document.getElementById('gamesPlayed').textContent = userStats.gamesPlayed;
+            document.getElementById('highScore').textContent = userStats.highScore;
+            
+            const rank = userStats.gamesPlayed < 5 ? 'Beginner' : 
+                        userStats.gamesPlayed < 20 ? 'Amateur' :
+                        userStats.gamesPlayed < 50 ? 'Pro' : 'Master';
+            document.getElementById('rankDisplay').textContent = rank;
+        }
+
+        function updateUserStats(score) {
+            userStats.gamesPlayed++;
+            if (score > userStats.highScore) {
+                userStats.highScore = score;
+            }
+            saveStats();
+            updateStatsDisplay();
+        }
+
+        document.getElementById('menuBtn').addEventListener('click', function(){
+            const s = document.getElementById('sidebar');
+            const o = document.getElementById('overlay');
+            const m = document.getElementById('menuIcon');
+            const c = document.getElementById('closeIcon');
+            s.classList.toggle('sidebar-open');
+            s.classList.toggle('sidebar-closed');
+            o.classList.toggle('hidden');
+            m.classList.toggle('hidden');
+            c.classList.toggle('hidden');
+        });
+
+        document.getElementById('overlay').addEventListener('click', function(){
+            document.getElementById('menuBtn').click();
+        });
+
+        function initializeApp() {
+            renderGames();
+            renderCategories();
+            renderFilterPills();
+        }
+
+        function renderGames(filter='All') {
+            const grid = document.getElementById('gamesGrid');
+            const filtered = filter === 'All' ? games : games.filter(g => g.category === filter);
+            grid.innerHTML = filtered.map(game => `
+                <div class="game-card bg-gradient-to-br ${game.color} rounded-xl p-6 cursor-pointer border-2 border-white/10 hover:border-white/30 shadow-xl" onclick="openGame(${game.id})">
+                    <div class="text-6xl mb-4">${game.icon}</div>
+                    <h3 class="text-xl font-bold text-white mb-2">${game.name}</h3>
+                    <span class="text-sm text-white/80">${game.category}</span>
+                </div>
+            `).join('');
+        }
+
+        function renderCategories() {
+            const cats = ['All', ...new Set(games.map(g => g.category))];
+            const container = document.getElementById('categoryButtons');
+            container.innerHTML = cats.map(cat => `
+                <button onclick="filterGames('${cat}')" class="w-full text-left px-4 py-2 rounded-lg hover:bg-cyan-500/20 text-gray-300 hover:text-white transition-colors">
+                    ${cat}
+                </button>
+            `).join('');
+        }
+
+        function renderFilterPills() {
+            const cats = ['All', ...new Set(games.map(g => g.category))];
+            const container = document.getElementById('filterPills');
+            container.innerHTML = cats.map(cat => `
+                <button onclick="filterGames('${cat}')" class="px-4 py-2 rounded-full bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 text-sm font-semibold whitespace-nowrap transition-all">
+                    ${cat}
+                </button>
+            `).join('');
+        }
+
+        function filterGames(category) {
+            renderGames(category);
+        }
+
+        function openGame(id) {
+            const game = games.find(g => g.id === id);
+            document.getElementById('modalIcon').textContent = game.icon;
+            document.getElementById('modalTitle').textContent = game.name;
+            document.getElementById('modalCategory').textContent = game.category;
+            document.getElementById('modalGameDisplay').className = `rounded-xl aspect-video flex items-center justify-center text-white text-6xl shadow-xl relative overflow-hidden bg-gradient-to-br ${game.color}`;
+            document.getElementById('modalGameDisplay').innerHTML = game.icon;
+            
+            const instructions = {
+                'Puzzle': 'Match colors and solve puzzles to score points!',
+                'Action': 'Dodge enemies and shoot your way to victory!',
+                'Arcade': 'Classic arcade action - beat your high score!',
+                'Racing': 'Race to the finish line and avoid obstacles!',
+                'Brain': 'Test your mental skills and solve challenges!',
+                'Strategy': 'Plan your moves and outsmart your opponents!'
+            };
+            document.getElementById('gameInstructions').textContent = instructions[game.category] || 'Use controls to play and score points!';
+            
+            document.getElementById('gameModal').classList.remove('hidden');
+        }
+
+        document.getElementById('closeModal').addEventListener('click', function(){
+            document.getElementById('gameModal').classList.add('hidden');
+        });
+
+        function startGame() {
             const gameTitle = document.getElementById('modalTitle').textContent;
             const gameIcon = document.getElementById('modalIcon').textContent;
+            const gameColor = document.getElementById('modalGameDisplay').className.match(/from-[\w-]+\s+to-[\w-]+/)[0];
+            
             document.getElementById('gameModal').classList.add('hidden');
             
-            // Create fullscreen game view
             const gameView = document.createElement('div');
             gameView.id = 'activeGame';
             gameView.className = 'fixed inset-0 bg-black z-50 flex flex-col';
@@ -201,34 +314,85 @@
                 <div class="bg-gray-900 p-4 flex justify-between items-center border-b border-cyan-500/30">
                     <div class="flex items-center gap-3">
                         <span class="text-3xl">${gameIcon}</span>
-                        <h3 class="text-xl font-bold text-white">${gameTitle}</h3>
+                        <div>
+                            <h3 class="text-xl font-bold text-white">${gameTitle}</h3>
+                            <p class="text-sm text-gray-400">Score: <span id="gameScore">0</span> | Time: <span id="gameTime">0</span>s</p>
+                        </div>
                     </div>
                     <button onclick="closeGame()" class="text-white hover:text-red-400 p-2 hover:bg-white/10 rounded-lg">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                     </button>
                 </div>
-                <div class="flex-1 flex items-center justify-center bg-gradient-to-br from-gray-900 to-black">
-                    <div class="text-center">
-                        <div class="text-8xl mb-4 animate-bounce">${gameIcon}</div>
-                        <p class="text-white text-2xl mb-2">${gameTitle}</p>
-                        <p class="text-gray-400">Game is loading...</p>
-                        <p class="text-cyan-400 mt-4 text-sm">Tap anywhere to play!</p>
-                    </div>
-                </div>
+                <div id="gameCanvas" class="flex-1 bg-gradient-to-br ${gameColor} cursor-pointer relative overflow-hidden"></div>
             `;
             document.body.appendChild(gameView);
+            
+            // Simple click game with timer
+            let score = 0;
+            let timeElapsed = 0;
+            const canvas = document.getElementById('gameCanvas');
+            
+            // Timer
+            const timer = setInterval(() => {
+                timeElapsed++;
+                document.getElementById('gameTime').textContent = timeElapsed;
+            }, 1000);
+            
+            // Store timer for cleanup
+            window.gameTimer = timer;
+            
+            // Create floating targets
+            function createTarget() {
+                const target = document.createElement('div');
+                target.className = 'absolute text-6xl cursor-pointer transition-transform hover:scale-110';
+                target.textContent = gameIcon;
+                target.style.left = Math.random() * (canvas.offsetWidth - 100) + 'px';
+                target.style.top = Math.random() * (canvas.offsetHeight - 100) + 'px';
+                
+                target.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    score += 10;
+                    document.getElementById('gameScore').textContent = score;
+                    
+                    // Particle effect
+                    const particle = document.createElement('div');
+                    particle.textContent = '+10';
+                    particle.className = 'absolute text-yellow-400 font-bold text-2xl pointer-events-none';
+                    particle.style.left = e.clientX + 'px';
+                    particle.style.top = e.clientY + 'px';
+                    particle.style.animation = 'fadeIn 0.5s ease-out reverse';
+                    document.body.appendChild(particle);
+                    setTimeout(() => particle.remove(), 500);
+                    
+                    target.remove();
+                    setTimeout(createTarget, 500);
+                });
+                
+                canvas.appendChild(target);
+            }
+            
+            // Create initial targets
+            for (let i = 0; i < 3; i++) {
+                setTimeout(() => createTarget(), i * 300);
+            }
         }
-        
-        function closeGame(){
+
+        function closeGame() {
+            if (window.gameTimer) {
+                clearInterval(window.gameTimer);
+            }
+            
             const gameView = document.getElementById('activeGame');
-            if(gameView) gameView.remove();
+            if (gameView) {
+                const score = parseInt(document.getElementById('gameScore').textContent);
+                updateUserStats(score);
+                
+                // Show score popup
+                alert(`Game Over!\n\nFinal Score: ${score}\nGames Played: ${userStats.gamesPlayed}\nHigh Score: ${userStats.highScore}`);
+                
+                gameView.remove();
+            }
         }
-        function toggleGodMode(){const btn=document.getElementById('godModeBtn'),ind=document.getElementById('godModeIndicator');if(btn.textContent.includes('OFF')){btn.textContent='⚡ God Mode: ON';ind.classList.remove('hidden')}else{btn.textContent='⚡ God Mode: OFF';ind.classList.add('hidden')}}
-        function unlockAllGames(){alert('All games unlocked!')}
-        function maxScore(){document.getElementById('highScore').textContent='999999';alert('All scores maxed!')}
-        function infiniteLives(){alert('Infinite lives activated!')}
-        let speedMultiplier=1;
-        function speedHack(){speedMultiplier=speedMultiplier===1?2:speedMultiplier===2?5:1;document.getElementById('speedBtn').textContent=`🚀 Speed Hack: ${speedMultiplier}x`}
     </script>
 </body>
 </html>
