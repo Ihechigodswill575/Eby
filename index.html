@@ -128,7 +128,20 @@
             </div>
         </div>
     </div>
-    <script>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        
+        const firebaseConfig = {
+            apiKey: "AIzaSyBzUELxbbaL6Wb_M1uNhjwlZHVTorN9XJs",
+            authDomain: "my-whatsapp-2c1af.firebaseapp.com",
+            projectId: "my-whatsapp-2c1af",
+            storageBucket: "my-whatsapp-2c1af.firebasestorage.app",
+            messagingSenderId: "1089455460888",
+            appId: "1:1089455460888:web:d0c8dea185ba6769ebe96d"
+        };
+        
+        const app = initializeApp(firebaseConfig);
+        
         const games=[
             {id:1,name:"Color Match",category:"Puzzle",icon:"🎨",color:"from-purple-500 to-pink-500"},
             {id:2,name:"Block Breaker",category:"Puzzle",icon:"🧱",color:"from-blue-500 to-cyan-500"},
@@ -164,7 +177,7 @@
         function regularLogin(){const u=document.getElementById('usernameInput').value.trim();if(u){document.getElementById('loginModal').classList.add('hidden');document.getElementById('userDisplay').textContent=u;document.getElementById('welcomeUser').textContent='Welcome '+u;initializeApp()}else alert('Please enter a username')}
         function showAdminLogin(){document.getElementById('regularLogin').classList.add('hidden');document.getElementById('adminLogin').classList.remove('hidden')}
         function showRegularLogin(){document.getElementById('adminLogin').classList.add('hidden');document.getElementById('regularLogin').classList.remove('hidden')}
-        function adminLogin(){const u=document.getElementById('adminUsernameInput').value.trim(),p=document.getElementById('adminPasswordInput').value;if(u==='admin'&&p==='admin123'){document.getElementById('loginModal').classList.add('hidden');document.getElementById('userDisplay').textContent='👑 '+u;document.getElementById('adminPanel').classList.remove('hidden');document.getElementById('adminBanner').classList.remove('hidden');document.getElementById('headerIcon').classList.add('admin-glow');initializeApp()}else alert('Invalid admin credentials')}
+        function adminLogin(){const u=document.getElementById('adminUsernameInput').value.trim(),p=document.getElementById('adminPasswordInput').value;if(u==='admin'&&p==='EBERECHI'){document.getElementById('loginModal').classList.add('hidden');document.getElementById('userDisplay').textContent='👑 '+u;document.getElementById('adminPanel').classList.remove('hidden');document.getElementById('adminBanner').classList.remove('hidden');document.getElementById('headerIcon').classList.add('admin-glow');initializeApp()}else alert('Invalid admin credentials')}
         function logout(){location.reload()}
         document.getElementById('menuBtn').addEventListener('click',function(){const s=document.getElementById('sidebar'),o=document.getElementById('overlay'),m=document.getElementById('menuIcon'),c=document.getElementById('closeIcon');s.classList.toggle('sidebar-open');s.classList.toggle('sidebar-closed');o.classList.toggle('hidden');m.classList.toggle('hidden');c.classList.toggle('hidden')});
         document.getElementById('overlay').addEventListener('click',function(){document.getElementById('menuBtn').click()});
@@ -175,7 +188,41 @@
         function filterGames(cat){renderGames(cat)}
         function openGame(id){const game=games.find(g=>g.id===id);document.getElementById('modalIcon').textContent=game.icon;document.getElementById('modalTitle').textContent=game.name;document.getElementById('modalCategory').textContent=game.category;document.getElementById('modalGameDisplay').className=`rounded-xl aspect-video flex items-center justify-center text-white text-6xl shadow-xl relative overflow-hidden bg-gradient-to-br ${game.color}`;document.getElementById('modalGameDisplay').innerHTML=`<div id="godModeIndicator" class="hidden absolute top-4 right-4 bg-yellow-500 text-black px-3 py-1 rounded-full text-sm font-bold">⚡ GOD MODE</div>${game.icon}`;document.getElementById('gameModal').classList.remove('hidden')}
         document.getElementById('closeModal').addEventListener('click',function(){document.getElementById('gameModal').classList.add('hidden')});
-        function startGame(){alert('Game starting!')}
+        function startGame(){
+            const gameTitle = document.getElementById('modalTitle').textContent;
+            const gameIcon = document.getElementById('modalIcon').textContent;
+            document.getElementById('gameModal').classList.add('hidden');
+            
+            // Create fullscreen game view
+            const gameView = document.createElement('div');
+            gameView.id = 'activeGame';
+            gameView.className = 'fixed inset-0 bg-black z-50 flex flex-col';
+            gameView.innerHTML = `
+                <div class="bg-gray-900 p-4 flex justify-between items-center border-b border-cyan-500/30">
+                    <div class="flex items-center gap-3">
+                        <span class="text-3xl">${gameIcon}</span>
+                        <h3 class="text-xl font-bold text-white">${gameTitle}</h3>
+                    </div>
+                    <button onclick="closeGame()" class="text-white hover:text-red-400 p-2 hover:bg-white/10 rounded-lg">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
+                </div>
+                <div class="flex-1 flex items-center justify-center bg-gradient-to-br from-gray-900 to-black">
+                    <div class="text-center">
+                        <div class="text-8xl mb-4 animate-bounce">${gameIcon}</div>
+                        <p class="text-white text-2xl mb-2">${gameTitle}</p>
+                        <p class="text-gray-400">Game is loading...</p>
+                        <p class="text-cyan-400 mt-4 text-sm">Tap anywhere to play!</p>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(gameView);
+        }
+        
+        function closeGame(){
+            const gameView = document.getElementById('activeGame');
+            if(gameView) gameView.remove();
+        }
         function toggleGodMode(){const btn=document.getElementById('godModeBtn'),ind=document.getElementById('godModeIndicator');if(btn.textContent.includes('OFF')){btn.textContent='⚡ God Mode: ON';ind.classList.remove('hidden')}else{btn.textContent='⚡ God Mode: OFF';ind.classList.add('hidden')}}
         function unlockAllGames(){alert('All games unlocked!')}
         function maxScore(){document.getElementById('highScore').textContent='999999';alert('All scores maxed!')}
