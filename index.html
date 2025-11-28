@@ -1,531 +1,798 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GODSWILLMEDIAS - Video Converter</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GODSWILL Chat</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/9.22.0/firebase-app-compat.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/9.22.0/firebase-firestore-compat.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/9.22.0/firebase-auth-compat.min.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
 
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            padding: 20px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #000;
+      color: #fff;
+      height: 100vh;
+      overflow: hidden;
+    }
 
-        .container {
-            background: white;
-            border-radius: 20px;
-            padding: 40px;
-            max-width: 900px;
-            width: 100%;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-        }
+    .auth-container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
 
-        .brand {
-            text-align: center;
-            margin-bottom: 30px;
-        }
+    .auth-box {
+      background: rgba(0, 0, 0, 0.8);
+      padding: 40px;
+      border-radius: 20px;
+      width: 90%;
+      max-width: 400px;
+      backdrop-filter: blur(10px);
+    }
 
-        .brand h1 {
-            color: #667eea;
-            font-size: 2.5em;
-            font-weight: 800;
-            letter-spacing: 1px;
-            margin-bottom: 5px;
-            text-transform: uppercase;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
+    .auth-box h1 {
+      font-family: Impact, fantasy;
+      font-size: 2.5rem;
+      text-align: center;
+      background: linear-gradient(45deg, #ffd700, #ff1493, #9370db);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 30px;
+    }
 
-        h2 {
-            color: #333;
-            margin-bottom: 10px;
-            font-size: 1.5em;
-        }
+    .input-group {
+      margin-bottom: 20px;
+    }
 
-        .subtitle {
-            color: #666;
-            margin-bottom: 30px;
-        }
+    .input-group input {
+      width: 100%;
+      padding: 15px;
+      border: none;
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.1);
+      color: #fff;
+      font-size: 16px;
+    }
 
-        .upload-area {
-            border: 3px dashed #667eea;
-            border-radius: 15px;
-            padding: 40px;
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.3s;
-            margin-bottom: 30px;
-            background: #f8f9ff;
-        }
+    .input-group input::placeholder {
+      color: rgba(255, 255, 255, 0.5);
+    }
 
-        .upload-area:hover {
-            border-color: #764ba2;
-            background: #f0f1ff;
-        }
+    .btn {
+      width: 100%;
+      padding: 15px;
+      border: none;
+      border-radius: 10px;
+      background: linear-gradient(45deg, #9370db, #ff1493);
+      color: #fff;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+      margin-top: 10px;
+    }
 
-        .upload-area.dragover {
-            border-color: #764ba2;
-            background: #e8e9ff;
-            transform: scale(1.02);
-        }
+    .btn:hover {
+      opacity: 0.9;
+    }
 
-        .upload-icon {
-            font-size: 3em;
-            margin-bottom: 15px;
-        }
+    .toggle-auth {
+      text-align: center;
+      margin-top: 20px;
+      color: rgba(255, 255, 255, 0.7);
+      cursor: pointer;
+    }
 
-        input[type="file"] {
-            display: none;
-        }
+    .main-container {
+      display: none;
+      height: 100vh;
+      flex-direction: column;
+    }
 
-        .controls {
-            display: none;
-            margin-top: 30px;
-        }
+    .header {
+      background: linear-gradient(90deg, #581c87, #9333ea, #ec4899);
+      padding: 15px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
 
-        .controls.active {
-            display: block;
-        }
+    .header h1 {
+      font-family: Impact, fantasy;
+      font-size: 1.8rem;
+      letter-spacing: 2px;
+    }
 
-        .control-group {
-            margin-bottom: 25px;
-        }
+    .header-buttons {
+      display: flex;
+      gap: 10px;
+    }
 
-        label {
-            display: block;
-            margin-bottom: 8px;
-            color: #333;
-            font-weight: 600;
-        }
+    .header-btn {
+      padding: 8px 15px;
+      background: rgba(255, 255, 255, 0.2);
+      border: none;
+      border-radius: 8px;
+      color: #fff;
+      cursor: pointer;
+      font-size: 14px;
+    }
 
-        select, button {
-            width: 100%;
-            padding: 12px;
-            border-radius: 8px;
-            border: 2px solid #ddd;
-            font-size: 16px;
-            transition: all 0.3s;
-        }
+    .content-wrapper {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
 
-        select:focus {
-            outline: none;
-            border-color: #667eea;
-        }
+    .sidebar {
+      width: 300px;
+      background: #1a1a1a;
+      border-right: 1px solid #333;
+      display: flex;
+      flex-direction: column;
+    }
 
-        .ratio-buttons {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-            gap: 10px;
-            margin-bottom: 20px;
-        }
+    .sidebar-header {
+      padding: 20px;
+      border-bottom: 1px solid #333;
+    }
 
-        .ratio-btn {
-            padding: 12px;
-            border: 2px solid #667eea;
-            background: white;
-            color: #667eea;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: 600;
-            transition: all 0.3s;
-        }
+    .sidebar-header h2 {
+      margin-bottom: 10px;
+    }
 
-        .ratio-btn:hover {
-            background: #667eea;
-            color: white;
-        }
+    .new-chat-btn {
+      width: 100%;
+      padding: 10px;
+      background: linear-gradient(45deg, #9370db, #ff1493);
+      border: none;
+      border-radius: 8px;
+      color: #fff;
+      cursor: pointer;
+      margin-bottom: 10px;
+    }
 
-        .ratio-btn.active {
-            background: #667eea;
-            color: white;
-        }
+    .chat-list {
+      flex: 1;
+      overflow-y: auto;
+    }
 
-        .mode-buttons {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
-        }
+    .chat-item {
+      padding: 15px 20px;
+      cursor: pointer;
+      border-bottom: 1px solid #333;
+      transition: background 0.2s;
+    }
 
-        .mode-btn {
-            flex: 1;
-            padding: 12px;
-            border: 2px solid #764ba2;
-            background: white;
-            color: #764ba2;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: 600;
-            transition: all 0.3s;
-        }
+    .chat-item:hover {
+      background: #2a2a2a;
+    }
 
-        .mode-btn:hover {
-            background: #764ba2;
-            color: white;
-        }
+    .chat-item.active {
+      background: #3a3a3a;
+    }
 
-        .mode-btn.active {
-            background: #764ba2;
-            color: white;
-        }
+    .chat-item-name {
+      font-weight: bold;
+      margin-bottom: 5px;
+    }
 
-        .preview-area {
-            margin: 30px 0;
-            text-align: center;
-        }
+    .chat-item-last {
+      font-size: 14px;
+      color: #888;
+    }
 
-        .preview-container {
-            display: inline-block;
-            position: relative;
-            max-width: 100%;
-            background: #000;
-            border-radius: 10px;
-            overflow: hidden;
-        }
+    .chat-area {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      background: #0a0a0a;
+    }
 
-        video, canvas {
-            max-width: 100%;
-            display: block;
-        }
+    .chat-header {
+      padding: 15px 20px;
+      background: #1a1a1a;
+      border-bottom: 1px solid #333;
+    }
 
-        .download-btn {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border: none;
-            padding: 15px 40px;
-            font-size: 18px;
-            font-weight: 600;
-            cursor: pointer;
-            border-radius: 10px;
-            transition: all 0.3s;
-        }
+    .messages-container {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px;
+    }
 
-        .download-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
-        }
+    .message {
+      margin-bottom: 20px;
+      display: flex;
+    }
 
-        .download-btn:disabled {
-            background: #ccc;
-            cursor: not-allowed;
-            transform: none;
-        }
+    .message.mine {
+      justify-content: flex-end;
+    }
 
-        .progress {
-            margin: 20px 0;
-            text-align: center;
-            color: #667eea;
-            font-weight: 600;
-        }
+    .message-content {
+      max-width: 60%;
+      padding: 12px 16px;
+      border-radius: 20px;
+    }
 
-        .info {
-            background: #e8f4fd;
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            color: #0066cc;
-        }
-    </style>
+    .message.mine .message-content {
+      background: linear-gradient(45deg, #9370db, #ff1493);
+    }
+
+    .message.other .message-content {
+      background: #2a2a2a;
+    }
+
+    .message-sender {
+      font-size: 12px;
+      margin-bottom: 4px;
+      opacity: 0.7;
+    }
+
+    .message-time {
+      font-size: 11px;
+      opacity: 0.6;
+      margin-top: 4px;
+    }
+
+    .input-area {
+      padding: 20px;
+      background: #1a1a1a;
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .input-area input {
+      flex: 1;
+      padding: 12px 20px;
+      border: none;
+      border-radius: 25px;
+      background: #2a2a2a;
+      color: #fff;
+      font-size: 15px;
+    }
+
+    .send-btn {
+      padding: 12px 24px;
+      background: linear-gradient(45deg, #9370db, #ff1493);
+      border: none;
+      border-radius: 25px;
+      color: #fff;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.8);
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+    }
+
+    .modal-content {
+      background: #1a1a1a;
+      padding: 30px;
+      border-radius: 15px;
+      width: 90%;
+      max-width: 500px;
+      max-height: 80vh;
+      overflow-y: auto;
+    }
+
+    .modal-content h2 {
+      margin-bottom: 20px;
+    }
+
+    .modal-content input {
+      width: 100%;
+      padding: 12px;
+      margin-bottom: 15px;
+      border: none;
+      border-radius: 8px;
+      background: #2a2a2a;
+      color: #fff;
+    }
+
+    .user-item {
+      padding: 10px;
+      background: #2a2a2a;
+      margin-bottom: 10px;
+      border-radius: 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .close-modal {
+      background: #666;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 8px;
+      color: #fff;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+
+    .empty-state {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100%;
+      color: #666;
+      font-size: 18px;
+    }
+
+    .error {
+      color: #ff4444;
+      margin-top: 10px;
+      font-size: 14px;
+    }
+  </style>
 </head>
 <body>
-    <div class="container">
-        <div class="brand">
-            <h1>🎬 GODSWILLMEDIAS</h1>
+  <!-- Auth Screen -->
+  <div id="authContainer" class="auth-container">
+    <div class="auth-box">
+      <h1>GODSWILL</h1>
+      <div id="authForm">
+        <div class="input-group">
+          <input type="text" id="authUsername" placeholder="Username">
         </div>
-        <h2>Video Aspect Ratio Converter</h2>
-        <p class="subtitle">Convert your videos to any aspect ratio with ease</p>
-
-        <div class="upload-area" id="uploadArea">
-            <div class="upload-icon">📹</div>
-            <h3>Click to upload or drag & drop</h3>
-            <p>Support for MP4, WebM, MOV, and other video formats</p>
-            <input type="file" id="fileInput" accept="video/*">
+        <div class="input-group">
+          <input type="password" id="authPassword" placeholder="Password">
         </div>
+        <div class="error" id="authError"></div>
+        <button class="btn" id="loginBtn">Login</button>
+        <button class="btn" id="signupBtn">Sign Up</button>
+      </div>
+    </div>
+  </div>
 
-        <div class="controls" id="controls">
-            <div class="info">
-                <strong>Original:</strong> <span id="originalInfo">-</span>
-            </div>
-
-            <div class="control-group">
-                <label>Select Target Aspect Ratio:</label>
-                <div class="ratio-buttons">
-                    <button class="ratio-btn" data-ratio="9:16">9:16 (Vertical)</button>
-                    <button class="ratio-btn" data-ratio="9:20">9:20 (Vertical)</button>
-                    <button class="ratio-btn" data-ratio="3:4">3:4 (Vertical)</button>
-                    <button class="ratio-btn" data-ratio="1:1">1:1 (Square)</button>
-                    <button class="ratio-btn" data-ratio="16:9">16:9 (Horizontal)</button>
-                    <button class="ratio-btn" data-ratio="4:3">4:3 (Horizontal)</button>
-                </div>
-            </div>
-
-            <div class="control-group">
-                <label>Conversion Mode:</label>
-                <div class="mode-buttons">
-                    <button class="mode-btn active" data-mode="pad">Add Padding (Fit)</button>
-                    <button class="mode-btn" data-mode="crop">Crop (Fill)</button>
-                </div>
-            </div>
-
-            <div class="preview-area">
-                <h3>Preview:</h3>
-                <div class="preview-container">
-                    <canvas id="previewCanvas"></canvas>
-                </div>
-            </div>
-
-            <div class="progress" id="progress"></div>
-
-            <button class="download-btn" id="downloadBtn">⬇️ Download Converted Video</button>
-        </div>
+  <!-- Main Chat Interface -->
+  <div id="mainContainer" class="main-container">
+    <div class="header">
+      <h1>GODSWILL</h1>
+      <div class="header-buttons">
+        <span id="currentUser"></span>
+        <button class="header-btn" id="logoutBtn">Logout</button>
+      </div>
     </div>
 
-    <script>
-        const uploadArea = document.getElementById('uploadArea');
-        const fileInput = document.getElementById('fileInput');
-        const controls = document.getElementById('controls');
-        const originalInfo = document.getElementById('originalInfo');
-        const previewCanvas = document.getElementById('previewCanvas');
-        const downloadBtn = document.getElementById('downloadBtn');
-        const progress = document.getElementById('progress');
-        const ctx = previewCanvas.getContext('2d');
+    <div class="content-wrapper">
+      <div class="sidebar">
+        <div class="sidebar-header">
+          <h2>Chats</h2>
+          <button class="new-chat-btn" id="newChatBtn">+ New Chat</button>
+          <button class="new-chat-btn" id="newGroupBtn">+ New Group</button>
+        </div>
+        <div class="chat-list" id="chatList"></div>
+      </div>
 
-        let videoFile = null;
-        let videoElement = document.createElement('video');
-        let targetRatio = '9:16';
-        let mode = 'pad';
+      <div class="chat-area">
+        <div id="emptyState" class="empty-state">
+          Select a chat to start messaging
+        </div>
+        <div id="chatContent" style="display: none; flex: 1; display: flex; flex-direction: column;">
+          <div class="chat-header">
+            <h3 id="chatTitle">Chat</h3>
+          </div>
+          <div class="messages-container" id="messagesContainer"></div>
+          <div class="input-area">
+            <input type="text" id="messageInput" placeholder="Type a message...">
+            <button class="send-btn" id="sendBtn">Send</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 
-        // Upload area handlers
-        uploadArea.addEventListener('click', () => fileInput.click());
-        
-        uploadArea.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            uploadArea.classList.add('dragover');
+  <!-- New Chat Modal -->
+  <div id="newChatModal" class="modal">
+    <div class="modal-content">
+      <h2>Start New Chat</h2>
+      <input type="text" id="searchUsername" placeholder="Enter username">
+      <button class="btn" id="startChatBtn">Start Chat</button>
+      <button class="close-modal" id="closeNewChat">Cancel</button>
+      <div class="error" id="chatError"></div>
+    </div>
+  </div>
+
+  <!-- New Group Modal -->
+  <div id="newGroupModal" class="modal">
+    <div class="modal-content">
+      <h2>Create Group Chat</h2>
+      <input type="text" id="groupName" placeholder="Group name">
+      <input type="text" id="searchGroupUsers" placeholder="Search users to add">
+      <div id="selectedUsers"></div>
+      <div id="userSearchResults"></div>
+      <button class="btn" id="createGroupBtn">Create Group</button>
+      <button class="close-modal" id="closeNewGroup">Cancel</button>
+      <div class="error" id="groupError"></div>
+    </div>
+  </div>
+
+  <script>
+    // Firebase configuration
+    const firebaseConfig = {
+      apiKey: "AIzaSyBzUELxbbaL6Wb_M1uNhjwlZHVTorN9XJs",
+      authDomain: "my-whatsapp-2c1af.firebaseapp.com",
+      projectId: "my-whatsapp-2c1af",
+      storageBucket: "my-whatsapp-2c1af.firebasestorage.app",
+      messagingSenderId: "1089455460888",
+      appId: "1:1089455460888:web:d0c8dea185ba6769ebe96d"
+    };
+
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+    const auth = firebase.auth();
+
+    let currentUser = null;
+    let currentChatId = null;
+    let selectedGroupUsers = [];
+
+    // Auth Functions
+    document.getElementById('loginBtn').addEventListener('click', login);
+    document.getElementById('signupBtn').addEventListener('click', signup);
+    document.getElementById('logoutBtn').addEventListener('click', logout);
+
+    async function signup() {
+      const username = document.getElementById('authUsername').value.trim();
+      const password = document.getElementById('authPassword').value;
+      const errorEl = document.getElementById('authError');
+
+      if (!username || !password) {
+        errorEl.textContent = 'Please fill all fields';
+        return;
+      }
+
+      try {
+        // Check if username exists
+        const userCheck = await db.collection('users').where('username', '==', username).get();
+        if (!userCheck.empty) {
+          errorEl.textContent = 'Username already exists';
+          return;
+        }
+
+        // Create user document
+        await db.collection('users').add({
+          username: username,
+          password: password,
+          createdAt: firebase.firestore.FieldValue.serverTimestamp()
         });
 
-        uploadArea.addEventListener('dragleave', () => {
-            uploadArea.classList.remove('dragover');
-        });
+        errorEl.textContent = '';
+        alert('Account created! Please login.');
+      } catch (error) {
+        errorEl.textContent = 'Error: ' + error.message;
+      }
+    }
 
-        uploadArea.addEventListener('drop', (e) => {
-            e.preventDefault();
-            uploadArea.classList.remove('dragover');
-            const file = e.dataTransfer.files[0];
-            if (file && file.type.startsWith('video/')) {
-                handleFile(file);
-            }
-        });
+    async function login() {
+      const username = document.getElementById('authUsername').value.trim();
+      const password = document.getElementById('authPassword').value;
+      const errorEl = document.getElementById('authError');
 
-        fileInput.addEventListener('change', (e) => {
-            const file = e.target.files[0];
-            if (file) handleFile(file);
-        });
+      // Check for owner account
+      if (username === 'owner' && password === 'Eberechi22') {
+        currentUser = { username: 'owner', id: 'owner', isOwner: true };
+        showMainApp();
+        return;
+      }
 
-        // Ratio button handlers
-        document.querySelectorAll('.ratio-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                document.querySelectorAll('.ratio-btn').forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-                targetRatio = btn.dataset.ratio;
-                updatePreview();
-            });
-        });
+      try {
+        const userQuery = await db.collection('users')
+          .where('username', '==', username)
+          .where('password', '==', password)
+          .get();
 
-        // Mode button handlers
-        document.querySelectorAll('.mode-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-                mode = btn.dataset.mode;
-                updatePreview();
-            });
-        });
+        if (userQuery.empty) {
+          errorEl.textContent = 'Invalid username or password';
+          return;
+        }
 
-        function handleFile(file) {
-            videoFile = file;
-            const url = URL.createObjectURL(file);
-            videoElement.src = url;
+        const userDoc = userQuery.docs[0];
+        currentUser = {
+          id: userDoc.id,
+          username: userDoc.data().username
+        };
+
+        errorEl.textContent = '';
+        showMainApp();
+      } catch (error) {
+        errorEl.textContent = 'Error: ' + error.message;
+      }
+    }
+
+    function logout() {
+      currentUser = null;
+      currentChatId = null;
+      document.getElementById('authContainer').style.display = 'flex';
+      document.getElementById('mainContainer').style.display = 'none';
+      document.getElementById('authUsername').value = '';
+      document.getElementById('authPassword').value = '';
+    }
+
+    function showMainApp() {
+      document.getElementById('authContainer').style.display = 'none';
+      document.getElementById('mainContainer').style.display = 'flex';
+      document.getElementById('currentUser').textContent = currentUser.username;
+      loadChats();
+    }
+
+    // Chat Functions
+    async function loadChats() {
+      const chatList = document.getElementById('chatList');
+      
+      db.collection('chats')
+        .where('participants', 'array-contains', currentUser.username)
+        .orderBy('lastMessageTime', 'desc')
+        .onSnapshot(snapshot => {
+          chatList.innerHTML = '';
+          snapshot.forEach(doc => {
+            const chat = doc.data();
+            const chatItem = document.createElement('div');
+            chatItem.className = 'chat-item';
+            chatItem.innerHTML = `
+              <div class="chat-item-name">${chat.name || chat.participants.filter(p => p !== currentUser.username).join(', ')}</div>
+              <div class="chat-item-last">${chat.lastMessage || 'No messages yet'}</div>
+            `;
+            chatItem.addEventListener('click', () => openChat(doc.id, chat));
+            chatList.appendChild(chatItem);
+          });
+        });
+    }
+
+    function openChat(chatId, chatData) {
+      currentChatId = chatId;
+      document.getElementById('emptyState').style.display = 'none';
+      document.getElementById('chatContent').style.display = 'flex';
+      document.getElementById('chatTitle').textContent = chatData.name || chatData.participants.filter(p => p !== currentUser.username).join(', ');
+      
+      loadMessages(chatId);
+    }
+
+    function loadMessages(chatId) {
+      const messagesContainer = document.getElementById('messagesContainer');
+      
+      db.collection('chats').doc(chatId).collection('messages')
+        .orderBy('timestamp', 'asc')
+        .onSnapshot(snapshot => {
+          messagesContainer.innerHTML = '';
+          snapshot.forEach(doc => {
+            const msg = doc.data();
+            const isMine = msg.sender === currentUser.username;
             
-            videoElement.addEventListener('loadedmetadata', () => {
-                const w = videoElement.videoWidth;
-                const h = videoElement.videoHeight;
-                const ratio = (w / h).toFixed(2);
-                originalInfo.textContent = `${w}x${h} (${ratio}:1)`;
-                
-                controls.classList.add('active');
-                document.querySelector('.ratio-btn').classList.add('active');
-                updatePreview();
-            });
-        }
-
-        function updatePreview() {
-            if (!videoElement.src) return;
-
-            const [targetW, targetH] = targetRatio.split(':').map(Number);
-            const targetAspect = targetW / targetH;
-            const sourceW = videoElement.videoWidth;
-            const sourceH = videoElement.videoHeight;
-            const sourceAspect = sourceW / sourceH;
-
-            let canvasW, canvasH, drawX, drawY, drawW, drawH;
-
-            // Set canvas size based on target ratio
-            const maxSize = 400;
-            if (targetAspect > 1) {
-                canvasW = maxSize;
-                canvasH = maxSize / targetAspect;
-            } else {
-                canvasH = maxSize;
-                canvasW = maxSize * targetAspect;
-            }
-
-            previewCanvas.width = canvasW;
-            previewCanvas.height = canvasH;
-
-            if (mode === 'pad') {
-                // Fit entire video with padding
-                if (sourceAspect > targetAspect) {
-                    drawW = canvasW;
-                    drawH = canvasW / sourceAspect;
-                    drawX = 0;
-                    drawY = (canvasH - drawH) / 2;
-                } else {
-                    drawH = canvasH;
-                    drawW = canvasH * sourceAspect;
-                    drawX = (canvasW - drawW) / 2;
-                    drawY = 0;
-                }
-                ctx.fillStyle = '#000';
-                ctx.fillRect(0, 0, canvasW, canvasH);
-            } else {
-                // Crop to fill
-                if (sourceAspect > targetAspect) {
-                    drawH = canvasH;
-                    drawW = canvasH * sourceAspect;
-                    drawX = (canvasW - drawW) / 2;
-                    drawY = 0;
-                } else {
-                    drawW = canvasW;
-                    drawH = canvasW / sourceAspect;
-                    drawX = 0;
-                    drawY = (canvasH - drawH) / 2;
-                }
-            }
-
-            ctx.drawImage(videoElement, drawX, drawY, drawW, drawH);
-        }
-
-        downloadBtn.addEventListener('click', async () => {
-            if (!videoFile) return;
-
-            downloadBtn.disabled = true;
-            progress.textContent = 'Processing video... This may take a while.';
-
-            try {
-                const [targetW, targetH] = targetRatio.split(':').map(Number);
-                const targetAspect = targetW / targetH;
-                const sourceW = videoElement.videoWidth;
-                const sourceH = videoElement.videoHeight;
-                const sourceAspect = sourceW / sourceH;
-
-                // Calculate output dimensions
-                let outputW, outputH;
-                if (targetAspect > 1) {
-                    outputW = 1920;
-                    outputH = Math.round(1920 / targetAspect);
-                } else {
-                    outputH = 1920;
-                    outputW = Math.round(1920 * targetAspect);
-                }
-
-                const canvas = document.createElement('canvas');
-                canvas.width = outputW;
-                canvas.height = outputH;
-                const ctx = canvas.getContext('2d');
-
-                const stream = canvas.captureStream(30);
-                const mediaRecorder = new MediaRecorder(stream, {
-                    mimeType: 'video/webm;codecs=vp9',
-                    videoBitsPerSecond: 5000000
-                });
-
-                const chunks = [];
-                mediaRecorder.ondataavailable = (e) => chunks.push(e.data);
-                mediaRecorder.onstop = () => {
-                    const blob = new Blob(chunks, { type: 'video/webm' });
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = `converted_${targetRatio.replace(':', 'x')}_${mode}.webm`;
-                    a.click();
-                    
-                    progress.textContent = '✅ Download complete!';
-                    downloadBtn.disabled = false;
-                    setTimeout(() => progress.textContent = '', 3000);
-                };
-
-                mediaRecorder.start();
-                videoElement.currentTime = 0;
-                videoElement.play();
-
-                const renderFrame = () => {
-                    if (videoElement.ended) {
-                        mediaRecorder.stop();
-                        return;
-                    }
-
-                    let drawX, drawY, drawW, drawH;
-
-                    if (mode === 'pad') {
-                        if (sourceAspect > targetAspect) {
-                            drawW = outputW;
-                            drawH = outputW / sourceAspect;
-                            drawX = 0;
-                            drawY = (outputH - drawH) / 2;
-                        } else {
-                            drawH = outputH;
-                            drawW = outputH * sourceAspect;
-                            drawX = (outputW - drawW) / 2;
-                            drawY = 0;
-                        }
-                        ctx.fillStyle = '#000';
-                        ctx.fillRect(0, 0, outputW, outputH);
-                    } else {
-                        if (sourceAspect > targetAspect) {
-                            drawH = outputH;
-                            drawW = outputH * sourceAspect;
-                            drawX = (outputW - drawW) / 2;
-                            drawY = 0;
-                        } else {
-                            drawW = outputW;
-                            drawH = outputW / sourceAspect;
-                            drawX = 0;
-                            drawY = (outputH - drawH) / 2;
-                        }
-                    }
-
-                    ctx.drawImage(videoElement, drawX, drawY, drawW, drawH);
-                    requestAnimationFrame(renderFrame);
-                };
-
-                renderFrame();
-
-            } catch (error) {
-                progress.textContent = '❌ Error processing video: ' + error.message;
-                downloadBtn.disabled = false;
-            }
+            const messageEl = document.createElement('div');
+            messageEl.className = `message ${isMine ? 'mine' : 'other'}`;
+            messageEl.innerHTML = `
+              <div class="message-content">
+                ${!isMine ? `<div class="message-sender">${msg.sender}</div>` : ''}
+                <div>${msg.text}</div>
+                <div class="message-time">${msg.timestamp ? new Date(msg.timestamp.toDate()).toLocaleTimeString() : ''}</div>
+              </div>
+            `;
+            messagesContainer.appendChild(messageEl);
+          });
+          messagesContainer.scrollTop = messagesContainer.scrollHeight;
         });
-    </script>
+    }
+
+    document.getElementById('sendBtn').addEventListener('click', sendMessage);
+    document.getElementById('messageInput').addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') sendMessage();
+    });
+
+    async function sendMessage() {
+      const input = document.getElementById('messageInput');
+      const text = input.value.trim();
+      
+      if (!text || !currentChatId) return;
+
+      try {
+        await db.collection('chats').doc(currentChatId).collection('messages').add({
+          text: text,
+          sender: currentUser.username,
+          timestamp: firebase.firestore.FieldValue.serverTimestamp()
+        });
+
+        await db.collection('chats').doc(currentChatId).update({
+          lastMessage: text,
+          lastMessageTime: firebase.firestore.FieldValue.serverTimestamp()
+        });
+
+        input.value = '';
+      } catch (error) {
+        console.error('Error sending message:', error);
+      }
+    }
+
+    // New Chat Modal
+    document.getElementById('newChatBtn').addEventListener('click', () => {
+      document.getElementById('newChatModal').style.display = 'flex';
+    });
+
+    window.deleteChat = deleteChat;
+    window.deleteMessage = deleteMessage;
+    window.deleteUser = deleteUser;
+    window.viewChatFromModal = viewChatFromModal;
+    window.deleteChatFromModal = deleteChatFromModal;
+
+    document.getElementById('closeNewChat').addEventListener('click', () => {
+      document.getElementById('newChatModal').style.display = 'none';
+      document.getElementById('searchUsername').value = '';
+      document.getElementById('chatError').textContent = '';
+    });
+
+    document.getElementById('startChatBtn').addEventListener('click', async () => {
+      const username = document.getElementById('searchUsername').value.trim();
+      const errorEl = document.getElementById('chatError');
+
+      if (!username) {
+        errorEl.textContent = 'Please enter a username';
+        return;
+      }
+
+      if (username === currentUser.username) {
+        errorEl.textContent = 'Cannot chat with yourself';
+        return;
+      }
+
+      try {
+        const userQuery = await db.collection('users').where('username', '==', username).get();
+        if (userQuery.empty) {
+          errorEl.textContent = 'User not found';
+          return;
+        }
+
+        const participants = [currentUser.username, username].sort();
+        
+        const existingChat = await db.collection('chats')
+          .where('participants', '==', participants)
+          .where('isGroup', '==', false)
+          .get();
+
+        let chatId;
+        if (!existingChat.empty) {
+          chatId = existingChat.docs[0].id;
+        } else {
+          const newChat = await db.collection('chats').add({
+            participants: participants,
+            isGroup: false,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+            lastMessageTime: firebase.firestore.FieldValue.serverTimestamp()
+          });
+          chatId = newChat.id;
+        }
+
+        document.getElementById('newChatModal').style.display = 'none';
+        document.getElementById('searchUsername').value = '';
+        errorEl.textContent = '';
+      } catch (error) {
+        errorEl.textContent = 'Error: ' + error.message;
+      }
+    });
+
+    // New Group Modal
+    document.getElementById('newGroupBtn').addEventListener('click', () => {
+      document.getElementById('newGroupModal').style.display = 'flex';
+      selectedGroupUsers = [];
+      updateSelectedUsers();
+    });
+
+    document.getElementById('closeNewGroup').addEventListener('click', () => {
+      document.getElementById('newGroupModal').style.display = 'none';
+      document.getElementById('groupName').value = '';
+      document.getElementById('searchGroupUsers').value = '';
+      document.getElementById('groupError').textContent = '';
+      selectedGroupUsers = [];
+    });
+
+    document.getElementById('searchGroupUsers').addEventListener('input', async (e) => {
+      const search = e.target.value.trim();
+      const resultsEl = document.getElementById('userSearchResults');
+      
+      if (!search) {
+        resultsEl.innerHTML = '';
+        return;
+      }
+
+      try {
+        const users = await db.collection('users').get();
+        resultsEl.innerHTML = '';
+        
+        users.forEach(doc => {
+          const username = doc.data().username;
+          if (username.includes(search) && username !== currentUser.username && !selectedGroupUsers.includes(username)) {
+            const userItem = document.createElement('div');
+            userItem.className = 'user-item';
+            userItem.innerHTML = `
+              <span>${username}</span>
+              <button class="btn" style="width: auto; padding: 5px 15px;">Add</button>
+            `;
+            userItem.querySelector('button').addEventListener('click', () => {
+              selectedGroupUsers.push(username);
+              updateSelectedUsers();
+              resultsEl.innerHTML = '';
+              document.getElementById('searchGroupUsers').value = '';
+            });
+            resultsEl.appendChild(userItem);
+          }
+        });
+      } catch (error) {
+        console.error('Error searching users:', error);
+      }
+    });
+
+    function updateSelectedUsers() {
+      const selectedEl = document.getElementById('selectedUsers');
+      selectedEl.innerHTML = '<h3>Selected Users:</h3>';
+      selectedGroupUsers.forEach(username => {
+        const userItem = document.createElement('div');
+        userItem.className = 'user-item';
+        userItem.innerHTML = `
+          <span>${username}</span>
+          <button class="close-modal" style="padding: 5px 15px;">Remove</button>
+        `;
+        userItem.querySelector('button').addEventListener('click', () => {
+          selectedGroupUsers = selectedGroupUsers.filter(u => u !== username);
+          updateSelectedUsers();
+        });
+        selectedEl.appendChild(userItem);
+      });
+    }
+
+    document.getElementById('createGroupBtn').addEventListener('click', async () => {
+      const groupName = document.getElementById('groupName').value.trim();
+      const errorEl = document.getElementById('groupError');
+
+      if (!groupName) {
+        errorEl.textContent = 'Please enter a group name';
+        return;
+      }
+
+      if (selectedGroupUsers.length === 0) {
+        errorEl.textContent = 'Please add at least one user';
+        return;
+      }
+
+      try {
+        const participants = [currentUser.username, ...selectedGroupUsers].sort();
+        
+        await db.collection('chats').add({
+          name: groupName,
+          participants: participants,
+          isGroup: true,
+          createdBy: currentUser.username,
+          createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+          lastMessageTime: firebase.firestore.FieldValue.serverTimestamp()
+        });
+
+        document.getElementById('newGroupModal').style.display = 'none';
+        document.getElementById('groupName').value = '';
+        document.getElementById('searchGroupUsers').value = '';
+        errorEl.textContent = '';
+        selectedGroupUsers = [];
+      } catch (error) {
+        errorEl.textContent = 'Error: ' + error.message;
+      }
+    });
+  </script>
 </body>
 </html>
