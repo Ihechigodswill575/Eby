@@ -3,394 +3,1048 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Godswillgames - Play 30 Games Online Free</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <title>Godswill Art Studio</title>
     <style>
-        @keyframes fadeIn{from{opacity:0;transform:scale(0.95)}to{opacity:1;transform:scale(1)}}
-        @keyframes slideIn{from{transform:translateY(-20px);opacity:0}to{transform:translateY(0);opacity:1}}
-        .fade-in{animation:fadeIn 0.3s ease-out}
-        .slide-in{animation:slideIn 0.4s ease-out}
-        .game-card{transition:all 0.3s cubic-bezier(0.4,0,0.2,1)}
-        .game-card:hover{transform:scale(1.05) translateY(-5px)}
-        .game-card:active{transform:scale(0.98)}
-        .sidebar-open{transform:translateX(0)}
-        .sidebar-closed{transform:translateX(-100%)}
-        @media (min-width:1024px){.sidebar-closed{transform:translateX(0)}}
-        .glow-effect{box-shadow:0 0 20px rgba(6,182,212,0.3)}
-        .glow-effect:hover{box-shadow:0 0 30px rgba(6,182,212,0.5)}
-        ::-webkit-scrollbar{width:8px}
-        ::-webkit-scrollbar-track{background:#1f2937}
-        ::-webkit-scrollbar-thumb{background:#06b6d4;border-radius:4px}
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #008080;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .paint-window {
+            background: #f0f0f0;
+            border: 2px solid #fff;
+            box-shadow: 
+                inset 1px 1px 0 #dfdfdf,
+                inset -1px -1px 0 #808080,
+                2px 2px 5px rgba(0,0,0,0.3);
+            max-width: 1100px;
+            width: 100%;
+        }
+
+        .title-bar {
+            background: linear-gradient(to right, #0054a6, #0099ff);
+            color: white;
+            padding: 3px 5px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        .title-bar-text {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .title-bar-controls {
+            display: flex;
+            gap: 2px;
+        }
+
+        .title-bar-btn {
+            width: 20px;
+            height: 18px;
+            background: #c0c0c0;
+            border: 1px solid;
+            border-color: #fff #000 #000 #fff;
+            font-size: 11px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .menu-bar {
+            background: #f0f0f0;
+            padding: 3px;
+            border-bottom: 1px solid #808080;
+            display: flex;
+            gap: 10px;
+            font-size: 13px;
+        }
+
+        .menu-item {
+            padding: 2px 8px;
+            cursor: pointer;
+        }
+
+        .menu-item:hover {
+            background: #0054a6;
+            color: white;
+        }
+
+        .toolbar-area {
+            display: flex;
+            gap: 5px;
+            padding: 5px;
+            background: #f0f0f0;
+        }
+
+        .tool-palette {
+            background: #c0c0c0;
+            border: 2px solid;
+            border-color: #808080 #fff #fff #808080;
+            padding: 5px;
+            display: grid;
+            grid-template-columns: repeat(2, 40px);
+            gap: 3px;
+            height: fit-content;
+        }
+
+        .tool-btn {
+            width: 40px;
+            height: 40px;
+            background: #c0c0c0;
+            border: 2px solid;
+            border-color: #fff #808080 #808080 #fff;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            position: relative;
+        }
+
+        .tool-btn:active, .tool-btn.active {
+            border-color: #808080 #fff #fff #808080;
+            background: #b0b0b0;
+        }
+
+        .main-area {
+            display: flex;
+            gap: 5px;
+            flex: 1;
+        }
+
+        .left-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .color-palette {
+            background: #c0c0c0;
+            border: 2px solid;
+            border-color: #808080 #fff #fff #808080;
+            padding: 5px;
+            width: 90px;
+        }
+
+        .color-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 12px);
+            gap: 1px;
+            margin-bottom: 8px;
+        }
+
+        .color-box {
+            width: 12px;
+            height: 12px;
+            border: 1px solid #000;
+            cursor: pointer;
+        }
+
+        .color-box:hover {
+            border: 1px solid #fff;
+        }
+
+        .current-colors {
+            display: flex;
+            gap: 3px;
+            align-items: center;
+            margin-top: 5px;
+        }
+
+        .color-display {
+            width: 30px;
+            height: 30px;
+            border: 2px solid;
+            border-color: #808080 #fff #fff #808080;
+        }
+
+        .options-panel {
+            background: #c0c0c0;
+            border: 2px solid;
+            border-color: #808080 #fff #fff #808080;
+            padding: 8px;
+            width: 90px;
+        }
+
+        .option-label {
+            font-size: 11px;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        .slider-container {
+            margin-bottom: 10px;
+        }
+
+        .slider-label {
+            font-size: 10px;
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 2px;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            height: 15px;
+        }
+
+        select {
+            width: 100%;
+            padding: 2px;
+            font-size: 11px;
+            background: white;
+            border: 1px solid #808080;
+        }
+
+        .canvas-container {
+            flex: 1;
+            overflow: auto;
+            background: #808080;
+            border: 2px solid;
+            border-color: #808080 #fff #fff #808080;
+            padding: 2px;
+        }
+
+        .canvas-wrapper {
+            display: inline-block;
+            box-shadow: 1px 1px 0 #000;
+        }
+
+        canvas {
+            display: block;
+            cursor: crosshair;
+            background: white;
+        }
+
+        .status-bar {
+            background: #c0c0c0;
+            border-top: 1px solid #fff;
+            padding: 2px 5px;
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+        }
+
+        .status-section {
+            padding: 0 10px;
+            border-right: 1px solid #808080;
+            border-left: 1px solid #fff;
+        }
+
+        .layer-panel {
+            background: #c0c0c0;
+            border: 2px solid;
+            border-color: #808080 #fff #fff #808080;
+            padding: 5px;
+            width: 90px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .layer-item {
+            background: white;
+            border: 1px solid #808080;
+            padding: 3px;
+            margin: 2px 0;
+            font-size: 10px;
+            cursor: pointer;
+        }
+
+        .layer-item.active {
+            background: #0054a6;
+            color: white;
+        }
+
+        .layer-btn {
+            width: 100%;
+            padding: 3px;
+            margin: 2px 0;
+            background: #c0c0c0;
+            border: 2px solid;
+            border-color: #fff #808080 #808080 #fff;
+            font-size: 10px;
+            cursor: pointer;
+        }
+
+        .layer-btn:active {
+            border-color: #808080 #fff #fff #808080;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal.show {
+            display: flex;
+        }
+
+        .modal-window {
+            background: #f0f0f0;
+            border: 2px solid #fff;
+            box-shadow: 
+                inset 1px 1px 0 #dfdfdf,
+                inset -1px -1px 0 #808080,
+                3px 3px 8px rgba(0,0,0,0.5);
+            min-width: 400px;
+            max-width: 600px;
+        }
+
+        .modal-title-bar {
+            background: linear-gradient(to right, #0054a6, #0099ff);
+            color: white;
+            padding: 3px 5px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        .modal-close {
+            width: 20px;
+            height: 18px;
+            background: #c0c0c0;
+            border: 1px solid;
+            border-color: #fff #000 #000 #fff;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            font-weight: bold;
+        }
+
+        .modal-content {
+            padding: 15px;
+            max-height: 70vh;
+            overflow-y: auto;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+
+        .modal-content h3 {
+            color: #0054a6;
+            margin: 10px 0 5px 0;
+            font-size: 14px;
+        }
+
+        .modal-content ul {
+            margin: 5px 0 10px 20px;
+        }
+
+        .modal-content li {
+            margin: 3px 0;
+        }
+
+        .menu-option {
+            padding: 8px 15px;
+            cursor: pointer;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .menu-option:hover {
+            background: #0054a6;
+            color: white;
+        }
+
+        @media (max-width: 768px) {
+            .modal-window {
+                min-width: 90%;
+                max-width: 90%;
+            }
+            
+            .toolbar-area {
+                flex-direction: column;
+            }
+            
+            .tool-palette {
+                grid-template-columns: repeat(4, 40px);
+            }
+        }
     </style>
 </head>
-<body class="bg-gradient-to-br from-gray-900 via-gray-800 to-black text-white min-h-screen">
-    <div id="loginModal" class="fixed inset-0 bg-black/95 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-        <div class="bg-gray-900 rounded-2xl max-w-md w-full border-2 border-cyan-500/50 shadow-2xl fade-in">
-            <div class="p-8">
-                <div class="text-center mb-8">
-                    <div class="bg-gradient-to-br from-cyan-500 to-blue-500 p-4 rounded-full w-20 h-20 mx-auto mb-4 glow-effect">
-                        <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 4a2 2 0 114 0v1a1 1 0 001 1h3a1 1 0 011 1v3a1 1 0 01-1 1h-1a2 2 0 100 4h1a1 1 0 011 1v3a1 1 0 01-1 1h-3a1 1 0 01-1-1v-1a2 2 0 10-4 0v1a1 1 0 01-1 1H7a1 1 0 01-1-1v-3a1 1 0 00-1-1H4a2 2 0 110-4h1a1 1 0 001-1V7a1 1 0 011-1h3a1 1 0 001-1V4z"/></svg>
-                    </div>
-                    <h2 class="text-3xl font-bold bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent mb-2">Welcome to Godswillgames</h2>
-                    <p class="text-gray-400 text-sm">Enter your username to start playing</p>
-                </div>
-                <div class="space-y-4">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-300 mb-2">Username</label>
-                        <input type="text" id="usernameInput" class="w-full px-4 py-3 bg-gray-800 border border-cyan-500/30 rounded-lg focus:outline-none focus:border-cyan-500 text-white" placeholder="Enter your username">
-                    </div>
-                    <button onclick="login()" class="w-full bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white font-bold py-3 rounded-lg transition-all transform hover:scale-105 active:scale-95">Play Now</button>
-                </div>
+<body>
+    <div class="paint-window">
+        <div class="title-bar">
+            <div class="title-bar-text">
+                <span>🎨</span>
+                <span>Godswill Art Studio</span>
+            </div>
+            <div class="title-bar-controls">
+                <div class="title-bar-btn">_</div>
+                <div class="title-bar-btn">□</div>
+                <div class="title-bar-btn">✕</div>
             </div>
         </div>
-    </div>
-    <header class="sticky top-0 z-40 bg-gray-900/90 backdrop-blur-xl border-b border-cyan-500/30 shadow-2xl">
-        <div class="container mx-auto px-4 py-4 flex items-center justify-between">
-            <div class="flex items-center gap-3">
-                <button id="menuBtn" class="lg:hidden text-cyan-400 p-2 hover:bg-white/10 rounded-lg active:scale-95">
-                    <svg id="menuIcon" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
-                    <svg id="closeIcon" class="w-6 h-6 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-                </button>
-                <div class="flex items-center gap-2">
-                    <div class="bg-gradient-to-br from-cyan-500 to-blue-500 p-2 rounded-lg glow-effect">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 4a2 2 0 114 0v1a1 1 0 001 1h3a1 1 0 011 1v3a1 1 0 01-1 1h-1a2 2 0 100 4h1a1 1 0 011 1v3a1 1 0 01-1 1h-3a1 1 0 01-1-1v-1a2 2 0 10-4 0v1a1 1 0 01-1 1H7a1 1 0 01-1-1v-3a1 1 0 00-1-1H4a2 2 0 110-4h1a1 1 0 001-1V7a1 1 0 011-1h3a1 1 0 001-1V4z"/></svg>
-                    </div>
-                    <h1 class="text-2xl font-bold bg-gradient-to-r from-cyan-400 via-blue-400 to-purple-400 bg-clip-text text-transparent">Godswillgames</h1>
-                </div>
-            </div>
-            <div class="flex items-center gap-3">
-                <div class="bg-cyan-500/20 px-3 py-1 rounded-full border border-cyan-500/30">
-                    <span class="text-sm font-semibold" id="userDisplay"></span>
-                </div>
-                <button onclick="logout()" class="text-gray-400 hover:text-red-400 p-2 hover:bg-white/10 rounded-lg">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
-                </button>
-            </div>
+
+        <div class="menu-bar">
+            <div class="menu-item" onclick="showFileMenu()">File</div>
+            <div class="menu-item" onclick="showEditMenu()">Edit</div>
+            <div class="menu-item" onclick="showViewMenu()">View</div>
+            <div class="menu-item" onclick="showImageMenu()">Image</div>
+            <div class="menu-item" onclick="showColorsMenu()">Colors</div>
+            <div class="menu-item" onclick="showHelp()">Help</div>
         </div>
-    </header>
-    <div class="flex">
-        <aside id="sidebar" class="sidebar-closed fixed lg:sticky top-[73px] left-0 h-[calc(100vh-73px)] z-30 w-64 bg-gray-900/95 border-r border-cyan-500/30 transition-transform duration-300 overflow-y-auto">
-            <div class="p-4 space-y-2">
-                <div class="mb-6">
-                    <h2 class="text-xs font-semibold text-cyan-400 mb-3 uppercase">Categories</h2>
-                    <div id="categoryButtons" class="space-y-2"></div>
-                </div>
-                <div class="pt-4">
-                    <div class="bg-gradient-to-br from-cyan-500/10 to-blue-500/10 rounded-lg p-4 border border-cyan-500/20">
-                        <h3 class="text-sm font-semibold text-cyan-400 mb-2">Your Stats</h3>
-                        <div class="space-y-2 text-xs text-gray-300">
-                            <div class="flex justify-between"><span>Games Played:</span><span class="font-bold text-white" id="gamesPlayed">0</span></div>
-                            <div class="flex justify-between"><span>High Score:</span><span class="font-bold text-yellow-400" id="highScore">0</span></div>
-                            <div class="flex justify-between"><span>Rank:</span><span class="font-bold text-cyan-400" id="rankDisplay">Beginner</span></div>
+
+        <div class="toolbar-area">
+            <div class="main-area">
+                <div class="left-panel">
+                    <div class="tool-palette">
+                        <div class="tool-btn active" data-tool="brush" title="Brush">✏️</div>
+                        <div class="tool-btn" data-tool="eraser" title="Eraser">🧹</div>
+                        <div class="tool-btn" data-tool="fill" title="Fill">🪣</div>
+                        <div class="tool-btn" data-tool="line" title="Line">📏</div>
+                        <div class="tool-btn" data-tool="rectangle" title="Rectangle">▭</div>
+                        <div class="tool-btn" data-tool="circle" title="Circle">○</div>
+                        <div class="tool-btn" data-tool="spray" title="Spray">💨</div>
+                        <div class="tool-btn" data-tool="picker" title="Color Picker">💧</div>
+                    </div>
+
+                    <div class="color-palette">
+                        <div class="color-grid" id="colorGrid"></div>
+                        <div class="current-colors">
+                            <div class="color-display" id="primaryColor" style="background: #000000;"></div>
+                            <div class="color-display" id="secondaryColor" style="background: #ffffff;"></div>
                         </div>
                     </div>
-                </div>
-            </div>
-        </aside>
-        <div id="overlay" class="fixed inset-0 bg-black/50 z-20 lg:hidden hidden"></div>
-        <main class="flex-1 p-4 lg:p-8">
-            <div class="max-w-7xl mx-auto">
-                <div class="mb-8 bg-gradient-to-r from-cyan-500/20 to-blue-500/20 rounded-2xl p-6 lg:p-8 border border-cyan-500/30 glow-effect slide-in">
-                    <h2 class="text-3xl lg:text-4xl font-bold mb-2 bg-gradient-to-r from-cyan-400 via-blue-400 to-purple-400 bg-clip-text text-transparent"><span id="welcomeUser">Welcome</span> to Godswillgames</h2>
-                    <p class="text-gray-300 text-sm lg:text-base">Dive into 30 amazing games. Play instantly - no downloads!</p>
-                </div>
-                <div class="mb-6 overflow-x-auto pb-2">
-                    <div class="flex gap-2" id="filterPills"></div>
-                </div>
-                <div id="gamesGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 lg:gap-6"></div>
-            </div>
-        </main>
-    </div>
-    <div id="gameModal" class="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4 fade-in hidden">
-        <div class="bg-gray-900 rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-auto border-2 border-cyan-500/50">
-            <div class="sticky top-0 bg-gray-900/95 border-b border-cyan-500/30 p-4 flex justify-between items-center">
-                <div class="flex items-center gap-3">
-                    <span class="text-4xl" id="modalIcon"></span>
-                    <div>
-                        <h2 class="text-xl lg:text-2xl font-bold" id="modalTitle"></h2>
-                        <span class="text-sm text-cyan-400" id="modalCategory"></span>
+
+                    <div class="options-panel">
+                        <div class="option-label">Brush Type</div>
+                        <select id="brushType">
+                            <option value="round">Round</option>
+                            <option value="square">Square</option>
+                            <option value="spray">Spray</option>
+                        </select>
+
+                        <div class="slider-container">
+                            <div class="slider-label">
+                                <span>Size</span>
+                                <span id="sizeValue">5</span>
+                            </div>
+                            <input type="range" id="brushSize" min="1" max="50" value="5">
+                        </div>
+
+                        <div class="slider-container">
+                            <div class="slider-label">
+                                <span>Opacity</span>
+                                <span id="opacityValue">100</span>
+                            </div>
+                            <input type="range" id="opacity" min="1" max="100" value="100">
+                        </div>
+                    </div>
+
+                    <div class="layer-panel">
+                        <div class="option-label">Layers</div>
+                        <div id="layerList"></div>
+                        <button class="layer-btn" onclick="addLayer()">Add Layer</button>
                     </div>
                 </div>
-                <button id="closeModal" class="text-white hover:text-cyan-400 p-2 hover:bg-white/10 rounded-lg">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-                </button>
-            </div>
-            <div class="p-6 lg:p-8">
-                <div id="modalGameDisplay" class="rounded-xl aspect-video flex items-center justify-center text-6xl relative"></div>
-                <div class="mt-6 space-y-4">
-                    <div class="bg-gray-800/50 rounded-lg p-4 border border-cyan-500/20">
-                        <h3 class="text-cyan-400 font-semibold mb-2">How to Play</h3>
-                        <p class="text-gray-300 text-sm" id="gameInstructions">Use mouse or touch controls. Tap to interact and collect points!</p>
+
+                <div class="canvas-container">
+                    <div class="canvas-wrapper">
+                        <canvas id="drawingCanvas" width="800" height="600"></canvas>
                     </div>
-                    <button onclick="startGame()" class="w-full bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white font-bold py-4 rounded-xl transform hover:scale-105 active:scale-95">🎮 Start Playing</button>
                 </div>
             </div>
         </div>
+
+        <div class="status-bar">
+            <div class="status-section">For Help, click Help Topics on the Help Menu</div>
+            <div class="status-section">Mouse: <span id="mousePos">0, 0</span></div>
+            <div class="status-section"><span id="canvasSize">800 x 600px</span></div>
+        </div>
     </div>
+
+    <!-- Modal Window -->
+    <div class="modal" id="modal">
+        <div class="modal-window">
+            <div class="modal-title-bar">
+                <span id="modalTitle">Help</span>
+                <div class="modal-close" onclick="closeModal()">✕</div>
+            </div>
+            <div class="modal-content" id="modalContent"></div>
+        </div>
+    </div>
+
     <script>
-        const games=[
-            {id:1,name:"Color Match",category:"Puzzle",icon:"🎨",color:"from-purple-500 to-pink-500"},
-            {id:2,name:"Block Breaker",category:"Puzzle",icon:"🧱",color:"from-blue-500 to-cyan-500"},
-            {id:3,name:"Memory Master",category:"Puzzle",icon:"🧠",color:"from-green-500 to-emerald-500"},
-            {id:4,name:"Number Quest",category:"Puzzle",icon:"🔢",color:"from-yellow-500 to-orange-500"},
-            {id:5,name:"Pattern Pro",category:"Puzzle",icon:"🔷",color:"from-indigo-500 to-purple-500"},
-            {id:6,name:"Space Shooter",category:"Action",icon:"🚀",color:"from-red-500 to-pink-500"},
-            {id:7,name:"Runner Dash",category:"Action",icon:"🏃",color:"from-orange-500 to-red-500"},
-            {id:8,name:"Ninja Strike",category:"Action",icon:"⚔️",color:"from-gray-600 to-gray-800"},
-            {id:9,name:"Sky Battle",category:"Action",icon:"✈️",color:"from-blue-600 to-indigo-600"},
-            {id:10,name:"Zombie Defense",category:"Action",icon:"🧟",color:"from-green-600 to-lime-600"},
-            {id:11,name:"Snake Classic",category:"Arcade",icon:"🐍",color:"from-green-500 to-teal-500"},
-            {id:12,name:"Pong Master",category:"Arcade",icon:"🏓",color:"from-cyan-500 to-blue-500"},
-            {id:13,name:"Tetris Pro",category:"Arcade",icon:"🟦",color:"from-purple-500 to-blue-500"},
-            {id:14,name:"Brick Blast",category:"Arcade",icon:"🎯",color:"from-red-500 to-orange-500"},
-            {id:15,name:"Bubble Pop",category:"Arcade",icon:"🫧",color:"from-pink-500 to-purple-500"},
-            {id:16,name:"Racing Thunder",category:"Racing",icon:"🏎️",color:"from-yellow-500 to-red-500"},
-            {id:17,name:"Moto Rush",category:"Racing",icon:"🏍️",color:"from-orange-500 to-pink-500"},
-            {id:18,name:"Drift King",category:"Racing",icon:"🚗",color:"from-blue-500 to-purple-500"},
-            {id:19,name:"Bike Escape",category:"Racing",icon:"🚴",color:"from-green-500 to-cyan-500"},
-            {id:20,name:"Speed Circuit",category:"Racing",icon:"🏁",color:"from-red-500 to-yellow-500"},
-            {id:21,name:"Word Hunt",category:"Brain",icon:"📝",color:"from-blue-500 to-green-500"},
-            {id:22,name:"Math Wizard",category:"Brain",icon:"➗",color:"from-purple-500 to-pink-500"},
-            {id:23,name:"Logic Grid",category:"Brain",icon:"🧩",color:"from-cyan-500 to-blue-500"},
-            {id:24,name:"Trivia Master",category:"Brain",icon:"❓",color:"from-yellow-500 to-orange-500"},
-            {id:25,name:"Chess Plus",category:"Brain",icon:"♟️",color:"from-gray-700 to-gray-900"},
-            {id:26,name:"Tower Defense",category:"Strategy",icon:"🏰",color:"from-stone-600 to-stone-800"},
-            {id:27,name:"War Tactics",category:"Strategy",icon:"⚔️",color:"from-red-600 to-orange-600"},
-            {id:28,name:"Kingdom Builder",category:"Strategy",icon:"👑",color:"from-yellow-600 to-amber-600"},
-            {id:29,name:"Space Colony",category:"Strategy",icon:"🛸",color:"from-indigo-600 to-purple-600"},
-            {id:30,name:"Battle Royale",category:"Strategy",icon:"💥",color:"from-red-500 to-pink-500"}
+        const canvas = document.getElementById('drawingCanvas');
+        const ctx = canvas.getContext('2d');
+        let currentTool = 'brush';
+        let currentColor = '#000000';
+        let currentBrushSize = 5;
+        let currentOpacity = 100;
+        let isDrawing = false;
+        let startX, startY;
+        let history = [];
+        let historyStep = -1;
+        let layers = [{id: 1, visible: true}];
+        let currentLayer = 0;
+
+        // Initialize canvas
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        saveState();
+
+        // Create color palette
+        const colors = [
+            '#000000', '#808080', '#800000', '#808000', '#008000', '#008080', '#000080',
+            '#FFFFFF', '#C0C0C0', '#FF0000', '#FFFF00', '#00FF00', '#00FFFF', '#0000FF',
+            '#800080', '#FF00FF', '#FF8000', '#80FF00', '#00FF80', '#0080FF', '#8000FF'
         ];
 
-        let currentUser = null;
-        let userStats = {gamesPlayed: 0, highScore: 0};
-
-        function login() {
-            const username = document.getElementById('usernameInput').value.trim();
-            if (!username) {
-                alert('Please enter a username');
-                return;
-            }
-
-            currentUser = username;
-            
-            // Load stats from localStorage
-            const savedStats = localStorage.getItem('userStats_' + username);
-            if (savedStats) {
-                userStats = JSON.parse(savedStats);
-            } else {
-                userStats = {gamesPlayed: 0, highScore: 0};
-            }
-            
-            document.getElementById('loginModal').classList.add('hidden');
-            document.getElementById('userDisplay').textContent = username;
-            document.getElementById('welcomeUser').textContent = 'Welcome ' + username;
-            updateStatsDisplay();
-            initializeApp();
-        }
-
-        function logout() {
-            location.reload();
-        }
-
-        function saveStats() {
-            if (currentUser) {
-                localStorage.setItem('userStats_' + currentUser, JSON.stringify(userStats));
-            }
-        }
-
-        function updateStatsDisplay() {
-            document.getElementById('gamesPlayed').textContent = userStats.gamesPlayed;
-            document.getElementById('highScore').textContent = userStats.highScore;
-            
-            const rank = userStats.gamesPlayed < 5 ? 'Beginner' : 
-                        userStats.gamesPlayed < 20 ? 'Amateur' :
-                        userStats.gamesPlayed < 50 ? 'Pro' : 'Master';
-            document.getElementById('rankDisplay').textContent = rank;
-        }
-
-        function updateUserStats(score) {
-            userStats.gamesPlayed++;
-            if (score > userStats.highScore) {
-                userStats.highScore = score;
-            }
-            saveStats();
-            updateStatsDisplay();
-        }
-
-        document.getElementById('menuBtn').addEventListener('click', function(){
-            const s = document.getElementById('sidebar');
-            const o = document.getElementById('overlay');
-            const m = document.getElementById('menuIcon');
-            const c = document.getElementById('closeIcon');
-            s.classList.toggle('sidebar-open');
-            s.classList.toggle('sidebar-closed');
-            o.classList.toggle('hidden');
-            m.classList.toggle('hidden');
-            c.classList.toggle('hidden');
-        });
-
-        document.getElementById('overlay').addEventListener('click', function(){
-            document.getElementById('menuBtn').click();
-        });
-
-        function initializeApp() {
-            renderGames();
-            renderCategories();
-            renderFilterPills();
-        }
-
-        function renderGames(filter='All') {
-            const grid = document.getElementById('gamesGrid');
-            const filtered = filter === 'All' ? games : games.filter(g => g.category === filter);
-            grid.innerHTML = filtered.map(game => `
-                <div class="game-card bg-gradient-to-br ${game.color} rounded-xl p-6 cursor-pointer border-2 border-white/10 hover:border-white/30 shadow-xl" onclick="openGame(${game.id})">
-                    <div class="text-6xl mb-4">${game.icon}</div>
-                    <h3 class="text-xl font-bold text-white mb-2">${game.name}</h3>
-                    <span class="text-sm text-white/80">${game.category}</span>
-                </div>
-            `).join('');
-        }
-
-        function renderCategories() {
-            const cats = ['All', ...new Set(games.map(g => g.category))];
-            const container = document.getElementById('categoryButtons');
-            container.innerHTML = cats.map(cat => `
-                <button onclick="filterGames('${cat}')" class="w-full text-left px-4 py-2 rounded-lg hover:bg-cyan-500/20 text-gray-300 hover:text-white transition-colors">
-                    ${cat}
-                </button>
-            `).join('');
-        }
-
-        function renderFilterPills() {
-            const cats = ['All', ...new Set(games.map(g => g.category))];
-            const container = document.getElementById('filterPills');
-            container.innerHTML = cats.map(cat => `
-                <button onclick="filterGames('${cat}')" class="px-4 py-2 rounded-full bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 text-sm font-semibold whitespace-nowrap transition-all">
-                    ${cat}
-                </button>
-            `).join('');
-        }
-
-        function filterGames(category) {
-            renderGames(category);
-        }
-
-        function openGame(id) {
-            const game = games.find(g => g.id === id);
-            document.getElementById('modalIcon').textContent = game.icon;
-            document.getElementById('modalTitle').textContent = game.name;
-            document.getElementById('modalCategory').textContent = game.category;
-            document.getElementById('modalGameDisplay').className = `rounded-xl aspect-video flex items-center justify-center text-white text-6xl shadow-xl relative overflow-hidden bg-gradient-to-br ${game.color}`;
-            document.getElementById('modalGameDisplay').innerHTML = game.icon;
-            
-            const instructions = {
-                'Puzzle': 'Match colors and solve puzzles to score points!',
-                'Action': 'Dodge enemies and shoot your way to victory!',
-                'Arcade': 'Classic arcade action - beat your high score!',
-                'Racing': 'Race to the finish line and avoid obstacles!',
-                'Brain': 'Test your mental skills and solve challenges!',
-                'Strategy': 'Plan your moves and outsmart your opponents!'
+        const colorGrid = document.getElementById('colorGrid');
+        colors.forEach(color => {
+            const box = document.createElement('div');
+            box.className = 'color-box';
+            box.style.background = color;
+            box.onclick = () => {
+                currentColor = color;
+                document.getElementById('primaryColor').style.background = color;
             };
-            document.getElementById('gameInstructions').textContent = instructions[game.category] || 'Use controls to play and score points!';
-            
-            document.getElementById('gameModal').classList.remove('hidden');
-        }
-
-        document.getElementById('closeModal').addEventListener('click', function(){
-            document.getElementById('gameModal').classList.add('hidden');
+            colorGrid.appendChild(box);
         });
 
-        function startGame() {
-            const gameTitle = document.getElementById('modalTitle').textContent;
-            const gameIcon = document.getElementById('modalIcon').textContent;
-            const gameColor = document.getElementById('modalGameDisplay').className.match(/from-[\w-]+\s+to-[\w-]+/)[0];
-            
-            document.getElementById('gameModal').classList.add('hidden');
-            
-            const gameView = document.createElement('div');
-            gameView.id = 'activeGame';
-            gameView.className = 'fixed inset-0 bg-black z-50 flex flex-col';
-            gameView.innerHTML = `
-                <div class="bg-gray-900 p-4 flex justify-between items-center border-b border-cyan-500/30">
-                    <div class="flex items-center gap-3">
-                        <span class="text-3xl">${gameIcon}</span>
-                        <div>
-                            <h3 class="text-xl font-bold text-white">${gameTitle}</h3>
-                            <p class="text-sm text-gray-400">Score: <span id="gameScore">0</span> | Time: <span id="gameTime">0</span>s</p>
-                        </div>
-                    </div>
-                    <button onclick="closeGame()" class="text-white hover:text-red-400 p-2 hover:bg-white/10 rounded-lg">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-                    </button>
-                </div>
-                <div id="gameCanvas" class="flex-1 bg-gradient-to-br ${gameColor} cursor-pointer relative overflow-hidden"></div>
-            `;
-            document.body.appendChild(gameView);
-            
-            // Simple click game with timer
-            let score = 0;
-            let timeElapsed = 0;
-            const canvas = document.getElementById('gameCanvas');
-            
-            // Timer
-            const timer = setInterval(() => {
-                timeElapsed++;
-                document.getElementById('gameTime').textContent = timeElapsed;
-            }, 1000);
-            
-            // Store timer for cleanup
-            window.gameTimer = timer;
-            
-            // Create floating targets
-            function createTarget() {
-                const target = document.createElement('div');
-                target.className = 'absolute text-6xl cursor-pointer transition-transform hover:scale-110';
-                target.textContent = gameIcon;
-                target.style.left = Math.random() * (canvas.offsetWidth - 100) + 'px';
-                target.style.top = Math.random() * (canvas.offsetHeight - 100) + 'px';
-                
-                target.addEventListener('click', function(e) {
-                    e.stopPropagation();
-                    score += 10;
-                    document.getElementById('gameScore').textContent = score;
-                    
-                    // Particle effect
-                    const particle = document.createElement('div');
-                    particle.textContent = '+10';
-                    particle.className = 'absolute text-yellow-400 font-bold text-2xl pointer-events-none';
-                    particle.style.left = e.clientX + 'px';
-                    particle.style.top = e.clientY + 'px';
-                    particle.style.animation = 'fadeIn 0.5s ease-out reverse';
-                    document.body.appendChild(particle);
-                    setTimeout(() => particle.remove(), 500);
-                    
-                    target.remove();
-                    setTimeout(createTarget, 500);
-                });
-                
-                canvas.appendChild(target);
-            }
-            
-            // Create initial targets
-            for (let i = 0; i < 3; i++) {
-                setTimeout(() => createTarget(), i * 300);
+        // Tool selection
+        document.querySelectorAll('.tool-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                currentTool = this.dataset.tool;
+            });
+        });
+
+        // Sliders
+        document.getElementById('brushSize').addEventListener('input', (e) => {
+            currentBrushSize = e.target.value;
+            document.getElementById('sizeValue').textContent = e.target.value;
+        });
+
+        document.getElementById('opacity').addEventListener('input', (e) => {
+            currentOpacity = e.target.value;
+            document.getElementById('opacityValue').textContent = e.target.value;
+        });
+
+        // Mouse position tracking
+        canvas.addEventListener('mousemove', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const x = Math.floor(e.clientX - rect.left);
+            const y = Math.floor(e.clientY - rect.top);
+            document.getElementById('mousePos').textContent = `${x}, ${y}`;
+        });
+
+        // Drawing events
+        canvas.addEventListener('mousedown', startDrawing);
+        canvas.addEventListener('mousemove', draw);
+        canvas.addEventListener('mouseup', stopDrawing);
+        canvas.addEventListener('mouseout', stopDrawing);
+
+        // Touch support
+        canvas.addEventListener('touchstart', handleTouch);
+        canvas.addEventListener('touchmove', handleTouch);
+        canvas.addEventListener('touchend', stopDrawing);
+
+        function handleTouch(e) {
+            e.preventDefault();
+            const touch = e.touches[0];
+            const mouseEvent = new MouseEvent(e.type === 'touchstart' ? 'mousedown' : 'mousemove', {
+                clientX: touch.clientX,
+                clientY: touch.clientY
+            });
+            canvas.dispatchEvent(mouseEvent);
+        }
+
+        function startDrawing(e) {
+            isDrawing = true;
+            const rect = canvas.getBoundingClientRect();
+            startX = e.clientX - rect.left;
+            startY = e.clientY - rect.top;
+
+            if (currentTool === 'fill') {
+                floodFill(Math.floor(startX), Math.floor(startY));
+                saveState();
+            } else if (currentTool === 'picker') {
+                const pixel = ctx.getImageData(startX, startY, 1, 1).data;
+                currentColor = `rgb(${pixel[0]}, ${pixel[1]}, ${pixel[2]})`;
+                document.getElementById('primaryColor').style.background = currentColor;
             }
         }
 
-        function closeGame() {
-            if (window.gameTimer) {
-                clearInterval(window.gameTimer);
+        function draw(e) {
+            if (!isDrawing || currentTool === 'fill' || currentTool === 'picker') return;
+
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+
+            ctx.globalAlpha = currentOpacity / 100;
+            ctx.strokeStyle = currentColor;
+            ctx.fillStyle = currentColor;
+            ctx.lineWidth = currentBrushSize;
+
+            if (currentTool === 'brush') {
+                const brushStyle = document.getElementById('brushType').value;
+                ctx.lineCap = brushStyle === 'square' ? 'square' : 'round';
+                
+                if (brushStyle === 'spray') {
+                    spray(x, y);
+                } else {
+                    ctx.beginPath();
+                    ctx.moveTo(startX, startY);
+                    ctx.lineTo(x, y);
+                    ctx.stroke();
+                    startX = x;
+                    startY = y;
+                }
+            } else if (currentTool === 'eraser') {
+                ctx.globalCompositeOperation = 'destination-out';
+                ctx.beginPath();
+                ctx.arc(x, y, currentBrushSize, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.globalCompositeOperation = 'source-over';
+            } else if (currentTool === 'spray') {
+                spray(x, y);
+            }
+        }
+
+        function stopDrawing(e) {
+            if (!isDrawing) return;
+            isDrawing = false;
+
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+
+            if (currentTool === 'line') {
+                ctx.beginPath();
+                ctx.moveTo(startX, startY);
+                ctx.lineTo(x, y);
+                ctx.stroke();
+            } else if (currentTool === 'circle') {
+                const radius = Math.sqrt(Math.pow(x - startX, 2) + Math.pow(y - startY, 2));
+                ctx.beginPath();
+                ctx.arc(startX, startY, radius, 0, Math.PI * 2);
+                ctx.stroke();
+            } else if (currentTool === 'rectangle') {
+                ctx.strokeRect(startX, startY, x - startX, y - startY);
+            }
+
+            saveState();
+        }
+
+        function spray(x, y) {
+            const density = 15;
+            for (let i = 0; i < density; i++) {
+                const offsetX = (Math.random() - 0.5) * currentBrushSize * 2;
+                const offsetY = (Math.random() - 0.5) * currentBrushSize * 2;
+                ctx.fillRect(x + offsetX, y + offsetY, 1, 1);
+            }
+        }
+
+        function floodFill(x, y) {
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const targetColor = getPixelColor(imageData, x, y);
+            const fillColor = hexToRgb(currentColor);
+
+            if (colorsMatch(targetColor, fillColor)) return;
+
+            const stack = [[x, y]];
+            const visited = new Set();
+
+            while (stack.length > 0) {
+                const [cx, cy] = stack.pop();
+                const key = `${cx},${cy}`;
+
+                if (visited.has(key)) continue;
+                if (cx < 0 || cx >= canvas.width || cy < 0 || cy >= canvas.height) continue;
+
+                const currentColor = getPixelColor(imageData, cx, cy);
+                if (!colorsMatch(currentColor, targetColor)) continue;
+
+                setPixelColor(imageData, cx, cy, fillColor);
+                visited.add(key);
+
+                stack.push([cx + 1, cy], [cx - 1, cy], [cx, cy + 1], [cx, cy - 1]);
+            }
+
+            ctx.putImageData(imageData, 0, 0);
+        }
+
+        function getPixelColor(imageData, x, y) {
+            const index = (y * imageData.width + x) * 4;
+            return {
+                r: imageData.data[index],
+                g: imageData.data[index + 1],
+                b: imageData.data[index + 2],
+                a: imageData.data[index + 3]
+            };
+        }
+
+        function setPixelColor(imageData, x, y, color) {
+            const index = (y * imageData.width + x) * 4;
+            imageData.data[index] = color.r;
+            imageData.data[index + 1] = color.g;
+            imageData.data[index + 2] = color.b;
+            imageData.data[index + 3] = 255;
+        }
+
+        function colorsMatch(c1, c2) {
+            return c1.r === c2.r && c1.g === c2.g && c1.b === c2.b;
+        }
+
+        function hexToRgb(hex) {
+            const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+            return result ? {
+                r: parseInt(result[1], 16),
+                g: parseInt(result[2], 16),
+                b: parseInt(result[3], 16)
+            } : null;
+        }
+
+        function saveState() {
+            historyStep++;
+            if (historyStep < history.length) {
+                history.length = historyStep;
+            }
+            history.push(canvas.toDataURL());
+        }
+
+        function undo() {
+            if (historyStep > 0) {
+                historyStep--;
+                const img = new Image();
+                img.src = history[historyStep];
+                img.onload = () => {
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    ctx.drawImage(img, 0, 0);
+                };
+            }
+        }
+
+        function saveImage() {
+            const link = document.createElement('a');
+            link.download = 'godswill-artwork.png';
+            link.href = canvas.toDataURL();
+            link.click();
+        }
+
+        function addLayer() {
+            layers.push({id: layers.length + 1, visible: true});
+            updateLayers();
+        }
+
+        function updateLayers() {
+            const list = document.getElementById('layerList');
+            list.innerHTML = '';
+            layers.forEach((layer, idx) => {
+                const item = document.createElement('div');
+                item.className = 'layer-item' + (idx === currentLayer ? ' active' : '');
+                item.textContent = `Layer ${layer.id}`;
+                item.onclick = () => {
+                    currentLayer = idx;
+                    updateLayers();
+                };
+                list.appendChild(item);
+            });
+        }
+
+        updateLayers();
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (e.ctrlKey && e.key === 'z') {
+                e.preventDefault();
+                undo();
+            }
+            if (e.ctrlKey && e.key === 's') {
+                e.preventDefault();
+                saveImage();
+            }
+        });
+
+        // Modal functions
+        function showModal(title, content) {
+            document.getElementById('modalTitle').textContent = title;
+            document.getElementById('modalContent').innerHTML = content;
+            document.getElementById('modal').classList.add('show');
+        }
+
+        function closeModal() {
+            document.getElementById('modal').classList.remove('show');
+        }
+
+        // Close modal when clicking outside
+        document.getElementById('modal').addEventListener('click', (e) => {
+            if (e.target.id === 'modal') closeModal();
+        });
+
+        // Menu functions
+        function showFileMenu() {
+            const content = `
+                <div class="menu-option" onclick="newCanvas()">📄 New Canvas</div>
+                <div class="menu-option" onclick="saveImage()">💾 Save Image (Ctrl+S)</div>
+                <div class="menu-option" onclick="loadImage()">📁 Load Image</div>
+                <div class="menu-option" onclick="closeModal()">❌ Close</div>
+            `;
+            showModal('File Menu', content);
+        }
+
+        function showEditMenu() {
+            const content = `
+                <div class="menu-option" onclick="undo(); closeModal();">↶ Undo (Ctrl+Z)</div>
+                <div class="menu-option" onclick="redo(); closeModal();">↷ Redo</div>
+                <div class="menu-option" onclick="clearCanvas(); closeModal();">🗑️ Clear All</div>
+                <div class="menu-option" onclick="closeModal()">❌ Close</div>
+            `;
+            showModal('Edit Menu', content);
+        }
+
+        function showViewMenu() {
+            const content = `
+                <div class="menu-option" onclick="zoomIn()">🔍 Zoom In</div>
+                <div class="menu-option" onclick="zoomOut()">🔎 Zoom Out</div>
+                <div class="menu-option" onclick="resetZoom()">⊡ Reset Zoom</div>
+                <div class="menu-option" onclick="closeModal()">❌ Close</div>
+            `;
+            showModal('View Menu', content);
+        }
+
+        function showImageMenu() {
+            const content = `
+                <div class="menu-option" onclick="flipHorizontal()">↔️ Flip Horizontal</div>
+                <div class="menu-option" onclick="flipVertical()">↕️ Flip Vertical</div>
+                <div class="menu-option" onclick="rotate90()">🔄 Rotate 90°</div>
+                <div class="menu-option" onclick="closeModal()">❌ Close</div>
+            `;
+            showModal('Image Menu', content);
+        }
+
+        function showColorsMenu() {
+            const content = `
+                <div class="menu-option" onclick="invertColors()">🎨 Invert Colors</div>
+                <div class="menu-option" onclick="grayscale()">⚫ Grayscale</div>
+                <div class="menu-option" onclick="closeModal()">❌ Close</div>
+            `;
+            showModal('Colors Menu', content);
+        }
+
+        function showHelp() {
+            const content = `
+                <h3>Welcome to Godswill Art Studio! 🎨</h3>
+                <p>A professional digital drawing application inspired by Microsoft Paint.</p>
+                
+                <h3>🖌️ Tools Available:</h3>
+                <ul>
+                    <li><strong>Brush:</strong> Draw freehand with customizable size and type</li>
+                    <li><strong>Eraser:</strong> Remove parts of your drawing</li>
+                    <li><strong>Fill Bucket:</strong> Fill enclosed areas with color</li>
+                    <li><strong>Line:</strong> Draw straight lines</li>
+                    <li><strong>Rectangle:</strong> Draw rectangles and squares</li>
+                    <li><strong>Circle:</strong> Draw circles and ovals</li>
+                    <li><strong>Spray:</strong> Spray paint effect</li>
+                    <li><strong>Color Picker:</strong> Pick colors from your canvas</li>
+                </ul>
+
+                <h3>⌨️ Keyboard Shortcuts:</h3>
+                <ul>
+                    <li><strong>Ctrl+Z:</strong> Undo last action</li>
+                    <li><strong>Ctrl+S:</strong> Save your artwork</li>
+                </ul>
+
+                <h3>🎨 How to Use:</h3>
+                <ul>
+                    <li>Select a tool from the left toolbar</li>
+                    <li>Choose your color from the palette</li>
+                    <li>Adjust brush size and opacity using sliders</li>
+                    <li>Click and drag on canvas to draw</li>
+                    <li>Use layers for complex artwork</li>
+                    <li>Save your masterpiece when done!</li>
+                </ul>
+
+                <h3>💡 Tips:</h3>
+                <ul>
+                    <li>Works on desktop, tablet, and mobile devices</li>
+                    <li>Touch-enabled for drawing with your finger</li>
+                    <li>Use multiple layers for advanced projects</li>
+                    <li>Experiment with different brush types and opacity</li>
+                </ul>
+
+                <h3>✨ Created by Godswill</h3>
+                <p>Happy Drawing! 🖼️</p>
+            `;
+            showModal('Help - Godswill Art Studio', content);
+        }
+
+        // New canvas
+        function newCanvas() {
+            if (confirm('Create a new canvas? Current work will be lost if not saved.')) {
+                ctx.fillStyle = '#FFFFFF';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                history = [];
+                historyStep = -1;
+                saveState();
+                closeModal();
+            }
+        }
+
+        // Load image
+        function loadImage() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = 'image/*';
+            input.onchange = (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (event) => {
+                        const img = new Image();
+                        img.onload = () => {
+                            ctx.drawImage(img, 0, 0);
+                            saveState();
+                        };
+                        img.src = event.target.result;
+                    };
+                    reader.readAsDataURL(file);
+                }
+            };
+            input.click();
+            closeModal();
+        }
+
+        // Zoom functions
+        let currentZoom = 1;
+        function zoomIn() {
+            currentZoom = Math.min(currentZoom + 0.2, 3);
+            canvas.style.transform = `scale(${currentZoom})`;
+            closeModal();
+        }
+
+        function zoomOut() {
+            currentZoom = Math.max(currentZoom - 0.2, 0.5);
+            canvas.style.transform = `scale(${currentZoom})`;
+            closeModal();
+        }
+
+        function resetZoom() {
+            currentZoom = 1;
+            canvas.style.transform = 'scale(1)';
+            closeModal();
+        }
+
+        // Image transformations
+        function flipHorizontal() {
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            ctx.save();
+            ctx.scale(-1, 1);
+            ctx.drawImage(canvas, -canvas.width, 0);
+            ctx.restore();
+            saveState();
+            closeModal();
+        }
+
+        function flipVertical() {
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            ctx.save();
+            ctx.scale(1, -1);
+            ctx.drawImage(canvas, 0, -canvas.height);
+            ctx.restore();
+            saveState();
+            closeModal();
+        }
+
+        function rotate90() {
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = canvas.height;
+            tempCanvas.height = canvas.width;
+            const tempCtx = tempCanvas.getContext('2d');
+            
+            tempCtx.translate(tempCanvas.width / 2, tempCanvas.height / 2);
+            tempCtx.rotate(Math.PI / 2);
+            tempCtx.drawImage(canvas, -canvas.width / 2, -canvas.height / 2);
+            
+            canvas.width = tempCanvas.width;
+            canvas.height = tempCanvas.height;
+            ctx.drawImage(tempCanvas, 0, 0);
+            
+            document.getElementById('canvasSize').textContent = `${canvas.width} x ${canvas.height}px`;
+            saveState();
+            closeModal();
+        }
+
+        function invertColors() {
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const data = imageData.data;
+            
+            for (let i = 0; i < data.length; i += 4) {
+                data[i] = 255 - data[i];
+                data[i + 1] = 255 - data[i + 1];
+                data[i + 2] = 255 - data[i + 2];
             }
             
-            const gameView = document.getElementById('activeGame');
-            if (gameView) {
-                const score = parseInt(document.getElementById('gameScore').textContent);
-                updateUserStats(score);
-                
-                // Show score popup
-                alert(`Game Over!\n\nFinal Score: ${score}\nGames Played: ${userStats.gamesPlayed}\nHigh Score: ${userStats.highScore}`);
-                
-                gameView.remove();
+            ctx.putImageData(imageData, 0, 0);
+            saveState();
+            closeModal();
+        }
+
+        function grayscale() {
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const data = imageData.data;
+            
+            for (let i = 0; i < data.length; i += 4) {
+                const avg = (data[i] + data[i + 1] + data[i + 2]) / 3;
+                data[i] = avg;
+                data[i + 1] = avg;
+                data[i + 2] = avg;
+            }
+            
+            ctx.putImageData(imageData, 0, 0);
+            saveState();
+            closeModal();
+        }
+
+        function redo() {
+            if (historyStep < history.length - 1) {
+                historyStep++;
+                const img = new Image();
+                img.src = history[historyStep];
+                img.onload = () => {
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    ctx.drawImage(img, 0, 0);
+                };
+            }
+        }
+
+        function clearCanvas() {
+            if (confirm('Clear the entire canvas?')) {
+                ctx.fillStyle = '#FFFFFF';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                saveState();
             }
         }
     </script>
