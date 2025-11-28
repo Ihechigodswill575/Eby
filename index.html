@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Godswill Art Studio</title>
+    <title>GODSWILLMEDIAS - Video Converter</title>
     <style>
         * {
             margin: 0;
@@ -13,1040 +13,519 @@
 
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: #008080;
-            display: flex;
-            justify-content: center;
-            align-items: center;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
             padding: 20px;
-        }
-
-        .paint-window {
-            background: #f0f0f0;
-            border: 2px solid #fff;
-            box-shadow: 
-                inset 1px 1px 0 #dfdfdf,
-                inset -1px -1px 0 #808080,
-                2px 2px 5px rgba(0,0,0,0.3);
-            max-width: 1100px;
-            width: 100%;
-        }
-
-        .title-bar {
-            background: linear-gradient(to right, #0054a6, #0099ff);
-            color: white;
-            padding: 3px 5px;
             display: flex;
-            align-items: center;
-            justify-content: space-between;
-            font-weight: bold;
-            font-size: 14px;
-        }
-
-        .title-bar-text {
-            display: flex;
-            align-items: center;
-            gap: 5px;
-        }
-
-        .title-bar-controls {
-            display: flex;
-            gap: 2px;
-        }
-
-        .title-bar-btn {
-            width: 20px;
-            height: 18px;
-            background: #c0c0c0;
-            border: 1px solid;
-            border-color: #fff #000 #000 #fff;
-            font-size: 11px;
-            display: flex;
-            align-items: center;
             justify-content: center;
-            cursor: pointer;
-            font-weight: bold;
+            align-items: center;
         }
 
-        .menu-bar {
-            background: #f0f0f0;
-            padding: 3px;
-            border-bottom: 1px solid #808080;
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 900px;
+            width: 100%;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+
+        .brand {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .brand h1 {
+            color: #667eea;
+            font-size: 2.5em;
+            font-weight: 800;
+            letter-spacing: 1px;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        h2 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 1.5em;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+        }
+
+        .upload-area {
+            border: 3px dashed #667eea;
+            border-radius: 15px;
+            padding: 40px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-bottom: 30px;
+            background: #f8f9ff;
+        }
+
+        .upload-area:hover {
+            border-color: #764ba2;
+            background: #f0f1ff;
+        }
+
+        .upload-area.dragover {
+            border-color: #764ba2;
+            background: #e8e9ff;
+            transform: scale(1.02);
+        }
+
+        .upload-icon {
+            font-size: 3em;
+            margin-bottom: 15px;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        .controls {
+            display: none;
+            margin-top: 30px;
+        }
+
+        .controls.active {
+            display: block;
+        }
+
+        .control-group {
+            margin-bottom: 25px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 600;
+        }
+
+        select, button {
+            width: 100%;
+            padding: 12px;
+            border-radius: 8px;
+            border: 2px solid #ddd;
+            font-size: 16px;
+            transition: all 0.3s;
+        }
+
+        select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .ratio-buttons {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .ratio-btn {
+            padding: 12px;
+            border: 2px solid #667eea;
+            background: white;
+            color: #667eea;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .ratio-btn:hover {
+            background: #667eea;
+            color: white;
+        }
+
+        .ratio-btn.active {
+            background: #667eea;
+            color: white;
+        }
+
+        .mode-buttons {
             display: flex;
             gap: 10px;
-            font-size: 13px;
+            margin-bottom: 20px;
         }
 
-        .menu-item {
-            padding: 2px 8px;
+        .mode-btn {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid #764ba2;
+            background: white;
+            color: #764ba2;
+            border-radius: 8px;
             cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
         }
 
-        .menu-item:hover {
-            background: #0054a6;
+        .mode-btn:hover {
+            background: #764ba2;
             color: white;
         }
 
-        .toolbar-area {
-            display: flex;
-            gap: 5px;
-            padding: 5px;
-            background: #f0f0f0;
+        .mode-btn.active {
+            background: #764ba2;
+            color: white;
         }
 
-        .tool-palette {
-            background: #c0c0c0;
-            border: 2px solid;
-            border-color: #808080 #fff #fff #808080;
-            padding: 5px;
-            display: grid;
-            grid-template-columns: repeat(2, 40px);
-            gap: 3px;
-            height: fit-content;
+        .preview-area {
+            margin: 30px 0;
+            text-align: center;
         }
 
-        .tool-btn {
-            width: 40px;
-            height: 40px;
-            background: #c0c0c0;
-            border: 2px solid;
-            border-color: #fff #808080 #808080 #fff;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 20px;
-            position: relative;
-        }
-
-        .tool-btn:active, .tool-btn.active {
-            border-color: #808080 #fff #fff #808080;
-            background: #b0b0b0;
-        }
-
-        .main-area {
-            display: flex;
-            gap: 5px;
-            flex: 1;
-        }
-
-        .left-panel {
-            display: flex;
-            flex-direction: column;
-            gap: 5px;
-        }
-
-        .color-palette {
-            background: #c0c0c0;
-            border: 2px solid;
-            border-color: #808080 #fff #fff #808080;
-            padding: 5px;
-            width: 90px;
-        }
-
-        .color-grid {
-            display: grid;
-            grid-template-columns: repeat(7, 12px);
-            gap: 1px;
-            margin-bottom: 8px;
-        }
-
-        .color-box {
-            width: 12px;
-            height: 12px;
-            border: 1px solid #000;
-            cursor: pointer;
-        }
-
-        .color-box:hover {
-            border: 1px solid #fff;
-        }
-
-        .current-colors {
-            display: flex;
-            gap: 3px;
-            align-items: center;
-            margin-top: 5px;
-        }
-
-        .color-display {
-            width: 30px;
-            height: 30px;
-            border: 2px solid;
-            border-color: #808080 #fff #fff #808080;
-        }
-
-        .options-panel {
-            background: #c0c0c0;
-            border: 2px solid;
-            border-color: #808080 #fff #fff #808080;
-            padding: 8px;
-            width: 90px;
-        }
-
-        .option-label {
-            font-size: 11px;
-            margin-bottom: 5px;
-            font-weight: bold;
-        }
-
-        .slider-container {
-            margin-bottom: 10px;
-        }
-
-        .slider-label {
-            font-size: 10px;
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 2px;
-        }
-
-        input[type="range"] {
-            width: 100%;
-            height: 15px;
-        }
-
-        select {
-            width: 100%;
-            padding: 2px;
-            font-size: 11px;
-            background: white;
-            border: 1px solid #808080;
-        }
-
-        .canvas-container {
-            flex: 1;
-            overflow: auto;
-            background: #808080;
-            border: 2px solid;
-            border-color: #808080 #fff #fff #808080;
-            padding: 2px;
-        }
-
-        .canvas-wrapper {
+        .preview-container {
             display: inline-block;
-            box-shadow: 1px 1px 0 #000;
+            position: relative;
+            max-width: 100%;
+            background: #000;
+            border-radius: 10px;
+            overflow: hidden;
         }
 
-        canvas {
+        video, canvas {
+            max-width: 100%;
             display: block;
-            cursor: crosshair;
-            background: white;
         }
 
-        .status-bar {
-            background: #c0c0c0;
-            border-top: 1px solid #fff;
-            padding: 2px 5px;
-            display: flex;
-            justify-content: space-between;
-            font-size: 11px;
-        }
-
-        .status-section {
-            padding: 0 10px;
-            border-right: 1px solid #808080;
-            border-left: 1px solid #fff;
-        }
-
-        .layer-panel {
-            background: #c0c0c0;
-            border: 2px solid;
-            border-color: #808080 #fff #fff #808080;
-            padding: 5px;
-            width: 90px;
-            max-height: 200px;
-            overflow-y: auto;
-        }
-
-        .layer-item {
-            background: white;
-            border: 1px solid #808080;
-            padding: 3px;
-            margin: 2px 0;
-            font-size: 10px;
-            cursor: pointer;
-        }
-
-        .layer-item.active {
-            background: #0054a6;
+        .download-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
-        }
-
-        .layer-btn {
-            width: 100%;
-            padding: 3px;
-            margin: 2px 0;
-            background: #c0c0c0;
-            border: 2px solid;
-            border-color: #fff #808080 #808080 #fff;
-            font-size: 10px;
+            border: none;
+            padding: 15px 40px;
+            font-size: 18px;
+            font-weight: 600;
             cursor: pointer;
+            border-radius: 10px;
+            transition: all 0.3s;
         }
 
-        .layer-btn:active {
-            border-color: #808080 #fff #fff #808080;
+        .download-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
         }
 
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.5);
-            justify-content: center;
-            align-items: center;
-            z-index: 1000;
+        .download-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
         }
 
-        .modal.show {
-            display: flex;
+        .progress {
+            margin: 20px 0;
+            text-align: center;
+            color: #667eea;
+            font-weight: 600;
         }
 
-        .modal-window {
-            background: #f0f0f0;
-            border: 2px solid #fff;
-            box-shadow: 
-                inset 1px 1px 0 #dfdfdf,
-                inset -1px -1px 0 #808080,
-                3px 3px 8px rgba(0,0,0,0.5);
-            min-width: 400px;
-            max-width: 600px;
-        }
-
-        .modal-title-bar {
-            background: linear-gradient(to right, #0054a6, #0099ff);
-            color: white;
-            padding: 3px 5px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-weight: bold;
-            font-size: 14px;
-        }
-
-        .modal-close {
-            width: 20px;
-            height: 18px;
-            background: #c0c0c0;
-            border: 1px solid;
-            border-color: #fff #000 #000 #fff;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 11px;
-            font-weight: bold;
-        }
-
-        .modal-content {
+        .info {
+            background: #e8f4fd;
             padding: 15px;
-            max-height: 70vh;
-            overflow-y: auto;
-            font-size: 13px;
-            line-height: 1.6;
-        }
-
-        .modal-content h3 {
-            color: #0054a6;
-            margin: 10px 0 5px 0;
-            font-size: 14px;
-        }
-
-        .modal-content ul {
-            margin: 5px 0 10px 20px;
-        }
-
-        .modal-content li {
-            margin: 3px 0;
-        }
-
-        .menu-option {
-            padding: 8px 15px;
-            cursor: pointer;
-            border-bottom: 1px solid #e0e0e0;
-        }
-
-        .menu-option:hover {
-            background: #0054a6;
-            color: white;
-        }
-
-        @media (max-width: 768px) {
-            .modal-window {
-                min-width: 90%;
-                max-width: 90%;
-            }
-            
-            .toolbar-area {
-                flex-direction: column;
-            }
-            
-            .tool-palette {
-                grid-template-columns: repeat(4, 40px);
-            }
+            border-radius: 8px;
+            margin-bottom: 20px;
+            color: #0066cc;
         }
     </style>
 </head>
 <body>
-    <div class="paint-window">
-        <div class="title-bar">
-            <div class="title-bar-text">
-                <span>🎨</span>
-                <span>Godswill Art Studio</span>
-            </div>
-            <div class="title-bar-controls">
-                <div class="title-bar-btn">_</div>
-                <div class="title-bar-btn">□</div>
-                <div class="title-bar-btn">✕</div>
-            </div>
+    <div class="container">
+        <div class="brand">
+            <h1>🎬 GODSWILLMEDIAS</h1>
+        </div>
+        <h2>Video Aspect Ratio Converter</h2>
+        <p class="subtitle">Convert your videos to any aspect ratio with ease</p>
+
+        <div class="upload-area" id="uploadArea">
+            <div class="upload-icon">📹</div>
+            <h3>Click to upload or drag & drop</h3>
+            <p>Support for MP4, WebM, MOV, and other video formats</p>
+            <input type="file" id="fileInput" accept="video/*">
         </div>
 
-        <div class="menu-bar">
-            <div class="menu-item" onclick="showFileMenu()">File</div>
-            <div class="menu-item" onclick="showEditMenu()">Edit</div>
-            <div class="menu-item" onclick="showViewMenu()">View</div>
-            <div class="menu-item" onclick="showImageMenu()">Image</div>
-            <div class="menu-item" onclick="showColorsMenu()">Colors</div>
-            <div class="menu-item" onclick="showHelp()">Help</div>
-        </div>
+        <div class="controls" id="controls">
+            <div class="info">
+                <strong>Original:</strong> <span id="originalInfo">-</span>
+            </div>
 
-        <div class="toolbar-area">
-            <div class="main-area">
-                <div class="left-panel">
-                    <div class="tool-palette">
-                        <div class="tool-btn active" data-tool="brush" title="Brush">✏️</div>
-                        <div class="tool-btn" data-tool="eraser" title="Eraser">🧹</div>
-                        <div class="tool-btn" data-tool="fill" title="Fill">🪣</div>
-                        <div class="tool-btn" data-tool="line" title="Line">📏</div>
-                        <div class="tool-btn" data-tool="rectangle" title="Rectangle">▭</div>
-                        <div class="tool-btn" data-tool="circle" title="Circle">○</div>
-                        <div class="tool-btn" data-tool="spray" title="Spray">💨</div>
-                        <div class="tool-btn" data-tool="picker" title="Color Picker">💧</div>
-                    </div>
-
-                    <div class="color-palette">
-                        <div class="color-grid" id="colorGrid"></div>
-                        <div class="current-colors">
-                            <div class="color-display" id="primaryColor" style="background: #000000;"></div>
-                            <div class="color-display" id="secondaryColor" style="background: #ffffff;"></div>
-                        </div>
-                    </div>
-
-                    <div class="options-panel">
-                        <div class="option-label">Brush Type</div>
-                        <select id="brushType">
-                            <option value="round">Round</option>
-                            <option value="square">Square</option>
-                            <option value="spray">Spray</option>
-                        </select>
-
-                        <div class="slider-container">
-                            <div class="slider-label">
-                                <span>Size</span>
-                                <span id="sizeValue">5</span>
-                            </div>
-                            <input type="range" id="brushSize" min="1" max="50" value="5">
-                        </div>
-
-                        <div class="slider-container">
-                            <div class="slider-label">
-                                <span>Opacity</span>
-                                <span id="opacityValue">100</span>
-                            </div>
-                            <input type="range" id="opacity" min="1" max="100" value="100">
-                        </div>
-                    </div>
-
-                    <div class="layer-panel">
-                        <div class="option-label">Layers</div>
-                        <div id="layerList"></div>
-                        <button class="layer-btn" onclick="addLayer()">Add Layer</button>
-                    </div>
-                </div>
-
-                <div class="canvas-container">
-                    <div class="canvas-wrapper">
-                        <canvas id="drawingCanvas" width="800" height="600"></canvas>
-                    </div>
+            <div class="control-group">
+                <label>Select Target Aspect Ratio:</label>
+                <div class="ratio-buttons">
+                    <button class="ratio-btn" data-ratio="9:16">9:16 (Vertical)</button>
+                    <button class="ratio-btn" data-ratio="9:20">9:20 (Vertical)</button>
+                    <button class="ratio-btn" data-ratio="3:4">3:4 (Vertical)</button>
+                    <button class="ratio-btn" data-ratio="1:1">1:1 (Square)</button>
+                    <button class="ratio-btn" data-ratio="16:9">16:9 (Horizontal)</button>
+                    <button class="ratio-btn" data-ratio="4:3">4:3 (Horizontal)</button>
                 </div>
             </div>
-        </div>
 
-        <div class="status-bar">
-            <div class="status-section">For Help, click Help Topics on the Help Menu</div>
-            <div class="status-section">Mouse: <span id="mousePos">0, 0</span></div>
-            <div class="status-section"><span id="canvasSize">800 x 600px</span></div>
-        </div>
-    </div>
-
-    <!-- Modal Window -->
-    <div class="modal" id="modal">
-        <div class="modal-window">
-            <div class="modal-title-bar">
-                <span id="modalTitle">Help</span>
-                <div class="modal-close" onclick="closeModal()">✕</div>
+            <div class="control-group">
+                <label>Conversion Mode:</label>
+                <div class="mode-buttons">
+                    <button class="mode-btn active" data-mode="pad">Add Padding (Fit)</button>
+                    <button class="mode-btn" data-mode="crop">Crop (Fill)</button>
+                </div>
             </div>
-            <div class="modal-content" id="modalContent"></div>
+
+            <div class="preview-area">
+                <h3>Preview:</h3>
+                <div class="preview-container">
+                    <canvas id="previewCanvas"></canvas>
+                </div>
+            </div>
+
+            <div class="progress" id="progress"></div>
+
+            <button class="download-btn" id="downloadBtn">⬇️ Download Converted Video</button>
         </div>
     </div>
 
     <script>
-        const canvas = document.getElementById('drawingCanvas');
-        const ctx = canvas.getContext('2d');
-        let currentTool = 'brush';
-        let currentColor = '#000000';
-        let currentBrushSize = 5;
-        let currentOpacity = 100;
-        let isDrawing = false;
-        let startX, startY;
-        let history = [];
-        let historyStep = -1;
-        let layers = [{id: 1, visible: true}];
-        let currentLayer = 0;
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const controls = document.getElementById('controls');
+        const originalInfo = document.getElementById('originalInfo');
+        const previewCanvas = document.getElementById('previewCanvas');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const progress = document.getElementById('progress');
+        const ctx = previewCanvas.getContext('2d');
 
-        // Initialize canvas
-        ctx.fillStyle = '#FFFFFF';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        saveState();
+        let videoFile = null;
+        let videoElement = document.createElement('video');
+        let targetRatio = '9:16';
+        let mode = 'pad';
 
-        // Create color palette
-        const colors = [
-            '#000000', '#808080', '#800000', '#808000', '#008000', '#008080', '#000080',
-            '#FFFFFF', '#C0C0C0', '#FF0000', '#FFFF00', '#00FF00', '#00FFFF', '#0000FF',
-            '#800080', '#FF00FF', '#FF8000', '#80FF00', '#00FF80', '#0080FF', '#8000FF'
-        ];
-
-        const colorGrid = document.getElementById('colorGrid');
-        colors.forEach(color => {
-            const box = document.createElement('div');
-            box.className = 'color-box';
-            box.style.background = color;
-            box.onclick = () => {
-                currentColor = color;
-                document.getElementById('primaryColor').style.background = color;
-            };
-            colorGrid.appendChild(box);
-        });
-
-        // Tool selection
-        document.querySelectorAll('.tool-btn').forEach(btn => {
-            btn.addEventListener('click', function() {
-                document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
-                this.classList.add('active');
-                currentTool = this.dataset.tool;
-            });
-        });
-
-        // Sliders
-        document.getElementById('brushSize').addEventListener('input', (e) => {
-            currentBrushSize = e.target.value;
-            document.getElementById('sizeValue').textContent = e.target.value;
-        });
-
-        document.getElementById('opacity').addEventListener('input', (e) => {
-            currentOpacity = e.target.value;
-            document.getElementById('opacityValue').textContent = e.target.value;
-        });
-
-        // Mouse position tracking
-        canvas.addEventListener('mousemove', (e) => {
-            const rect = canvas.getBoundingClientRect();
-            const x = Math.floor(e.clientX - rect.left);
-            const y = Math.floor(e.clientY - rect.top);
-            document.getElementById('mousePos').textContent = `${x}, ${y}`;
-        });
-
-        // Drawing events
-        canvas.addEventListener('mousedown', startDrawing);
-        canvas.addEventListener('mousemove', draw);
-        canvas.addEventListener('mouseup', stopDrawing);
-        canvas.addEventListener('mouseout', stopDrawing);
-
-        // Touch support
-        canvas.addEventListener('touchstart', handleTouch);
-        canvas.addEventListener('touchmove', handleTouch);
-        canvas.addEventListener('touchend', stopDrawing);
-
-        function handleTouch(e) {
+        // Upload area handlers
+        uploadArea.addEventListener('click', () => fileInput.click());
+        
+        uploadArea.addEventListener('dragover', (e) => {
             e.preventDefault();
-            const touch = e.touches[0];
-            const mouseEvent = new MouseEvent(e.type === 'touchstart' ? 'mousedown' : 'mousemove', {
-                clientX: touch.clientX,
-                clientY: touch.clientY
-            });
-            canvas.dispatchEvent(mouseEvent);
-        }
+            uploadArea.classList.add('dragover');
+        });
 
-        function startDrawing(e) {
-            isDrawing = true;
-            const rect = canvas.getBoundingClientRect();
-            startX = e.clientX - rect.left;
-            startY = e.clientY - rect.top;
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
 
-            if (currentTool === 'fill') {
-                floodFill(Math.floor(startX), Math.floor(startY));
-                saveState();
-            } else if (currentTool === 'picker') {
-                const pixel = ctx.getImageData(startX, startY, 1, 1).data;
-                currentColor = `rgb(${pixel[0]}, ${pixel[1]}, ${pixel[2]})`;
-                document.getElementById('primaryColor').style.background = currentColor;
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            const file = e.dataTransfer.files[0];
+            if (file && file.type.startsWith('video/')) {
+                handleFile(file);
             }
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) handleFile(file);
+        });
+
+        // Ratio button handlers
+        document.querySelectorAll('.ratio-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.ratio-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                targetRatio = btn.dataset.ratio;
+                updatePreview();
+            });
+        });
+
+        // Mode button handlers
+        document.querySelectorAll('.mode-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                mode = btn.dataset.mode;
+                updatePreview();
+            });
+        });
+
+        function handleFile(file) {
+            videoFile = file;
+            const url = URL.createObjectURL(file);
+            videoElement.src = url;
+            
+            videoElement.addEventListener('loadedmetadata', () => {
+                const w = videoElement.videoWidth;
+                const h = videoElement.videoHeight;
+                const ratio = (w / h).toFixed(2);
+                originalInfo.textContent = `${w}x${h} (${ratio}:1)`;
+                
+                controls.classList.add('active');
+                document.querySelector('.ratio-btn').classList.add('active');
+                updatePreview();
+            });
         }
 
-        function draw(e) {
-            if (!isDrawing || currentTool === 'fill' || currentTool === 'picker') return;
+        function updatePreview() {
+            if (!videoElement.src) return;
 
-            const rect = canvas.getBoundingClientRect();
-            const x = e.clientX - rect.left;
-            const y = e.clientY - rect.top;
+            const [targetW, targetH] = targetRatio.split(':').map(Number);
+            const targetAspect = targetW / targetH;
+            const sourceW = videoElement.videoWidth;
+            const sourceH = videoElement.videoHeight;
+            const sourceAspect = sourceW / sourceH;
 
-            ctx.globalAlpha = currentOpacity / 100;
-            ctx.strokeStyle = currentColor;
-            ctx.fillStyle = currentColor;
-            ctx.lineWidth = currentBrushSize;
+            let canvasW, canvasH, drawX, drawY, drawW, drawH;
 
-            if (currentTool === 'brush') {
-                const brushStyle = document.getElementById('brushType').value;
-                ctx.lineCap = brushStyle === 'square' ? 'square' : 'round';
-                
-                if (brushStyle === 'spray') {
-                    spray(x, y);
+            // Set canvas size based on target ratio
+            const maxSize = 400;
+            if (targetAspect > 1) {
+                canvasW = maxSize;
+                canvasH = maxSize / targetAspect;
+            } else {
+                canvasH = maxSize;
+                canvasW = maxSize * targetAspect;
+            }
+
+            previewCanvas.width = canvasW;
+            previewCanvas.height = canvasH;
+
+            if (mode === 'pad') {
+                // Fit entire video with padding
+                if (sourceAspect > targetAspect) {
+                    drawW = canvasW;
+                    drawH = canvasW / sourceAspect;
+                    drawX = 0;
+                    drawY = (canvasH - drawH) / 2;
                 } else {
-                    ctx.beginPath();
-                    ctx.moveTo(startX, startY);
-                    ctx.lineTo(x, y);
-                    ctx.stroke();
-                    startX = x;
-                    startY = y;
+                    drawH = canvasH;
+                    drawW = canvasH * sourceAspect;
+                    drawX = (canvasW - drawW) / 2;
+                    drawY = 0;
                 }
-            } else if (currentTool === 'eraser') {
-                ctx.globalCompositeOperation = 'destination-out';
-                ctx.beginPath();
-                ctx.arc(x, y, currentBrushSize, 0, Math.PI * 2);
-                ctx.fill();
-                ctx.globalCompositeOperation = 'source-over';
-            } else if (currentTool === 'spray') {
-                spray(x, y);
-            }
-        }
-
-        function stopDrawing(e) {
-            if (!isDrawing) return;
-            isDrawing = false;
-
-            const rect = canvas.getBoundingClientRect();
-            const x = e.clientX - rect.left;
-            const y = e.clientY - rect.top;
-
-            if (currentTool === 'line') {
-                ctx.beginPath();
-                ctx.moveTo(startX, startY);
-                ctx.lineTo(x, y);
-                ctx.stroke();
-            } else if (currentTool === 'circle') {
-                const radius = Math.sqrt(Math.pow(x - startX, 2) + Math.pow(y - startY, 2));
-                ctx.beginPath();
-                ctx.arc(startX, startY, radius, 0, Math.PI * 2);
-                ctx.stroke();
-            } else if (currentTool === 'rectangle') {
-                ctx.strokeRect(startX, startY, x - startX, y - startY);
+                ctx.fillStyle = '#000';
+                ctx.fillRect(0, 0, canvasW, canvasH);
+            } else {
+                // Crop to fill
+                if (sourceAspect > targetAspect) {
+                    drawH = canvasH;
+                    drawW = canvasH * sourceAspect;
+                    drawX = (canvasW - drawW) / 2;
+                    drawY = 0;
+                } else {
+                    drawW = canvasW;
+                    drawH = canvasW / sourceAspect;
+                    drawX = 0;
+                    drawY = (canvasH - drawH) / 2;
+                }
             }
 
-            saveState();
+            ctx.drawImage(videoElement, drawX, drawY, drawW, drawH);
         }
 
-        function spray(x, y) {
-            const density = 15;
-            for (let i = 0; i < density; i++) {
-                const offsetX = (Math.random() - 0.5) * currentBrushSize * 2;
-                const offsetY = (Math.random() - 0.5) * currentBrushSize * 2;
-                ctx.fillRect(x + offsetX, y + offsetY, 1, 1);
-            }
-        }
+        downloadBtn.addEventListener('click', async () => {
+            if (!videoFile) return;
 
-        function floodFill(x, y) {
-            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-            const targetColor = getPixelColor(imageData, x, y);
-            const fillColor = hexToRgb(currentColor);
+            downloadBtn.disabled = true;
+            progress.textContent = 'Processing video... This may take a while.';
 
-            if (colorsMatch(targetColor, fillColor)) return;
+            try {
+                const [targetW, targetH] = targetRatio.split(':').map(Number);
+                const targetAspect = targetW / targetH;
+                const sourceW = videoElement.videoWidth;
+                const sourceH = videoElement.videoHeight;
+                const sourceAspect = sourceW / sourceH;
 
-            const stack = [[x, y]];
-            const visited = new Set();
+                // Calculate output dimensions
+                let outputW, outputH;
+                if (targetAspect > 1) {
+                    outputW = 1920;
+                    outputH = Math.round(1920 / targetAspect);
+                } else {
+                    outputH = 1920;
+                    outputW = Math.round(1920 * targetAspect);
+                }
 
-            while (stack.length > 0) {
-                const [cx, cy] = stack.pop();
-                const key = `${cx},${cy}`;
+                const canvas = document.createElement('canvas');
+                canvas.width = outputW;
+                canvas.height = outputH;
+                const ctx = canvas.getContext('2d');
 
-                if (visited.has(key)) continue;
-                if (cx < 0 || cx >= canvas.width || cy < 0 || cy >= canvas.height) continue;
+                const stream = canvas.captureStream(30);
+                const mediaRecorder = new MediaRecorder(stream, {
+                    mimeType: 'video/webm;codecs=vp9',
+                    videoBitsPerSecond: 5000000
+                });
 
-                const currentColor = getPixelColor(imageData, cx, cy);
-                if (!colorsMatch(currentColor, targetColor)) continue;
-
-                setPixelColor(imageData, cx, cy, fillColor);
-                visited.add(key);
-
-                stack.push([cx + 1, cy], [cx - 1, cy], [cx, cy + 1], [cx, cy - 1]);
-            }
-
-            ctx.putImageData(imageData, 0, 0);
-        }
-
-        function getPixelColor(imageData, x, y) {
-            const index = (y * imageData.width + x) * 4;
-            return {
-                r: imageData.data[index],
-                g: imageData.data[index + 1],
-                b: imageData.data[index + 2],
-                a: imageData.data[index + 3]
-            };
-        }
-
-        function setPixelColor(imageData, x, y, color) {
-            const index = (y * imageData.width + x) * 4;
-            imageData.data[index] = color.r;
-            imageData.data[index + 1] = color.g;
-            imageData.data[index + 2] = color.b;
-            imageData.data[index + 3] = 255;
-        }
-
-        function colorsMatch(c1, c2) {
-            return c1.r === c2.r && c1.g === c2.g && c1.b === c2.b;
-        }
-
-        function hexToRgb(hex) {
-            const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-            return result ? {
-                r: parseInt(result[1], 16),
-                g: parseInt(result[2], 16),
-                b: parseInt(result[3], 16)
-            } : null;
-        }
-
-        function saveState() {
-            historyStep++;
-            if (historyStep < history.length) {
-                history.length = historyStep;
-            }
-            history.push(canvas.toDataURL());
-        }
-
-        function undo() {
-            if (historyStep > 0) {
-                historyStep--;
-                const img = new Image();
-                img.src = history[historyStep];
-                img.onload = () => {
-                    ctx.clearRect(0, 0, canvas.width, canvas.height);
-                    ctx.drawImage(img, 0, 0);
+                const chunks = [];
+                mediaRecorder.ondataavailable = (e) => chunks.push(e.data);
+                mediaRecorder.onstop = () => {
+                    const blob = new Blob(chunks, { type: 'video/webm' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `converted_${targetRatio.replace(':', 'x')}_${mode}.webm`;
+                    a.click();
+                    
+                    progress.textContent = '✅ Download complete!';
+                    downloadBtn.disabled = false;
+                    setTimeout(() => progress.textContent = '', 3000);
                 };
-            }
-        }
 
-        function saveImage() {
-            const link = document.createElement('a');
-            link.download = 'godswill-artwork.png';
-            link.href = canvas.toDataURL();
-            link.click();
-        }
+                mediaRecorder.start();
+                videoElement.currentTime = 0;
+                videoElement.play();
 
-        function addLayer() {
-            layers.push({id: layers.length + 1, visible: true});
-            updateLayers();
-        }
+                const renderFrame = () => {
+                    if (videoElement.ended) {
+                        mediaRecorder.stop();
+                        return;
+                    }
 
-        function updateLayers() {
-            const list = document.getElementById('layerList');
-            list.innerHTML = '';
-            layers.forEach((layer, idx) => {
-                const item = document.createElement('div');
-                item.className = 'layer-item' + (idx === currentLayer ? ' active' : '');
-                item.textContent = `Layer ${layer.id}`;
-                item.onclick = () => {
-                    currentLayer = idx;
-                    updateLayers();
+                    let drawX, drawY, drawW, drawH;
+
+                    if (mode === 'pad') {
+                        if (sourceAspect > targetAspect) {
+                            drawW = outputW;
+                            drawH = outputW / sourceAspect;
+                            drawX = 0;
+                            drawY = (outputH - drawH) / 2;
+                        } else {
+                            drawH = outputH;
+                            drawW = outputH * sourceAspect;
+                            drawX = (outputW - drawW) / 2;
+                            drawY = 0;
+                        }
+                        ctx.fillStyle = '#000';
+                        ctx.fillRect(0, 0, outputW, outputH);
+                    } else {
+                        if (sourceAspect > targetAspect) {
+                            drawH = outputH;
+                            drawW = outputH * sourceAspect;
+                            drawX = (outputW - drawW) / 2;
+                            drawY = 0;
+                        } else {
+                            drawW = outputW;
+                            drawH = outputW / sourceAspect;
+                            drawX = 0;
+                            drawY = (outputH - drawH) / 2;
+                        }
+                    }
+
+                    ctx.drawImage(videoElement, drawX, drawY, drawW, drawH);
+                    requestAnimationFrame(renderFrame);
                 };
-                list.appendChild(item);
-            });
-        }
 
-        updateLayers();
+                renderFrame();
 
-        // Keyboard shortcuts
-        document.addEventListener('keydown', (e) => {
-            if (e.ctrlKey && e.key === 'z') {
-                e.preventDefault();
-                undo();
-            }
-            if (e.ctrlKey && e.key === 's') {
-                e.preventDefault();
-                saveImage();
+            } catch (error) {
+                progress.textContent = '❌ Error processing video: ' + error.message;
+                downloadBtn.disabled = false;
             }
         });
-
-        // Modal functions
-        function showModal(title, content) {
-            document.getElementById('modalTitle').textContent = title;
-            document.getElementById('modalContent').innerHTML = content;
-            document.getElementById('modal').classList.add('show');
-        }
-
-        function closeModal() {
-            document.getElementById('modal').classList.remove('show');
-        }
-
-        // Close modal when clicking outside
-        document.getElementById('modal').addEventListener('click', (e) => {
-            if (e.target.id === 'modal') closeModal();
-        });
-
-        // Menu functions
-        function showFileMenu() {
-            const content = `
-                <div class="menu-option" onclick="newCanvas()">📄 New Canvas</div>
-                <div class="menu-option" onclick="saveImage()">💾 Save Image (Ctrl+S)</div>
-                <div class="menu-option" onclick="loadImage()">📁 Load Image</div>
-                <div class="menu-option" onclick="closeModal()">❌ Close</div>
-            `;
-            showModal('File Menu', content);
-        }
-
-        function showEditMenu() {
-            const content = `
-                <div class="menu-option" onclick="undo(); closeModal();">↶ Undo (Ctrl+Z)</div>
-                <div class="menu-option" onclick="redo(); closeModal();">↷ Redo</div>
-                <div class="menu-option" onclick="clearCanvas(); closeModal();">🗑️ Clear All</div>
-                <div class="menu-option" onclick="closeModal()">❌ Close</div>
-            `;
-            showModal('Edit Menu', content);
-        }
-
-        function showViewMenu() {
-            const content = `
-                <div class="menu-option" onclick="zoomIn()">🔍 Zoom In</div>
-                <div class="menu-option" onclick="zoomOut()">🔎 Zoom Out</div>
-                <div class="menu-option" onclick="resetZoom()">⊡ Reset Zoom</div>
-                <div class="menu-option" onclick="closeModal()">❌ Close</div>
-            `;
-            showModal('View Menu', content);
-        }
-
-        function showImageMenu() {
-            const content = `
-                <div class="menu-option" onclick="flipHorizontal()">↔️ Flip Horizontal</div>
-                <div class="menu-option" onclick="flipVertical()">↕️ Flip Vertical</div>
-                <div class="menu-option" onclick="rotate90()">🔄 Rotate 90°</div>
-                <div class="menu-option" onclick="closeModal()">❌ Close</div>
-            `;
-            showModal('Image Menu', content);
-        }
-
-        function showColorsMenu() {
-            const content = `
-                <div class="menu-option" onclick="invertColors()">🎨 Invert Colors</div>
-                <div class="menu-option" onclick="grayscale()">⚫ Grayscale</div>
-                <div class="menu-option" onclick="closeModal()">❌ Close</div>
-            `;
-            showModal('Colors Menu', content);
-        }
-
-        function showHelp() {
-            const content = `
-                <h3>Welcome to Godswill Art Studio! 🎨</h3>
-                <p>A professional digital drawing application inspired by Microsoft Paint.</p>
-                
-                <h3>🖌️ Tools Available:</h3>
-                <ul>
-                    <li><strong>Brush:</strong> Draw freehand with customizable size and type</li>
-                    <li><strong>Eraser:</strong> Remove parts of your drawing</li>
-                    <li><strong>Fill Bucket:</strong> Fill enclosed areas with color</li>
-                    <li><strong>Line:</strong> Draw straight lines</li>
-                    <li><strong>Rectangle:</strong> Draw rectangles and squares</li>
-                    <li><strong>Circle:</strong> Draw circles and ovals</li>
-                    <li><strong>Spray:</strong> Spray paint effect</li>
-                    <li><strong>Color Picker:</strong> Pick colors from your canvas</li>
-                </ul>
-
-                <h3>⌨️ Keyboard Shortcuts:</h3>
-                <ul>
-                    <li><strong>Ctrl+Z:</strong> Undo last action</li>
-                    <li><strong>Ctrl+S:</strong> Save your artwork</li>
-                </ul>
-
-                <h3>🎨 How to Use:</h3>
-                <ul>
-                    <li>Select a tool from the left toolbar</li>
-                    <li>Choose your color from the palette</li>
-                    <li>Adjust brush size and opacity using sliders</li>
-                    <li>Click and drag on canvas to draw</li>
-                    <li>Use layers for complex artwork</li>
-                    <li>Save your masterpiece when done!</li>
-                </ul>
-
-                <h3>💡 Tips:</h3>
-                <ul>
-                    <li>Works on desktop, tablet, and mobile devices</li>
-                    <li>Touch-enabled for drawing with your finger</li>
-                    <li>Use multiple layers for advanced projects</li>
-                    <li>Experiment with different brush types and opacity</li>
-                </ul>
-
-                <h3>✨ Created by Godswill</h3>
-                <p>Happy Drawing! 🖼️</p>
-            `;
-            showModal('Help - Godswill Art Studio', content);
-        }
-
-        // New canvas
-        function newCanvas() {
-            if (confirm('Create a new canvas? Current work will be lost if not saved.')) {
-                ctx.fillStyle = '#FFFFFF';
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
-                history = [];
-                historyStep = -1;
-                saveState();
-                closeModal();
-            }
-        }
-
-        // Load image
-        function loadImage() {
-            const input = document.createElement('input');
-            input.type = 'file';
-            input.accept = 'image/*';
-            input.onchange = (e) => {
-                const file = e.target.files[0];
-                if (file) {
-                    const reader = new FileReader();
-                    reader.onload = (event) => {
-                        const img = new Image();
-                        img.onload = () => {
-                            ctx.drawImage(img, 0, 0);
-                            saveState();
-                        };
-                        img.src = event.target.result;
-                    };
-                    reader.readAsDataURL(file);
-                }
-            };
-            input.click();
-            closeModal();
-        }
-
-        // Zoom functions
-        let currentZoom = 1;
-        function zoomIn() {
-            currentZoom = Math.min(currentZoom + 0.2, 3);
-            canvas.style.transform = `scale(${currentZoom})`;
-            closeModal();
-        }
-
-        function zoomOut() {
-            currentZoom = Math.max(currentZoom - 0.2, 0.5);
-            canvas.style.transform = `scale(${currentZoom})`;
-            closeModal();
-        }
-
-        function resetZoom() {
-            currentZoom = 1;
-            canvas.style.transform = 'scale(1)';
-            closeModal();
-        }
-
-        // Image transformations
-        function flipHorizontal() {
-            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-            ctx.save();
-            ctx.scale(-1, 1);
-            ctx.drawImage(canvas, -canvas.width, 0);
-            ctx.restore();
-            saveState();
-            closeModal();
-        }
-
-        function flipVertical() {
-            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-            ctx.save();
-            ctx.scale(1, -1);
-            ctx.drawImage(canvas, 0, -canvas.height);
-            ctx.restore();
-            saveState();
-            closeModal();
-        }
-
-        function rotate90() {
-            const tempCanvas = document.createElement('canvas');
-            tempCanvas.width = canvas.height;
-            tempCanvas.height = canvas.width;
-            const tempCtx = tempCanvas.getContext('2d');
-            
-            tempCtx.translate(tempCanvas.width / 2, tempCanvas.height / 2);
-            tempCtx.rotate(Math.PI / 2);
-            tempCtx.drawImage(canvas, -canvas.width / 2, -canvas.height / 2);
-            
-            canvas.width = tempCanvas.width;
-            canvas.height = tempCanvas.height;
-            ctx.drawImage(tempCanvas, 0, 0);
-            
-            document.getElementById('canvasSize').textContent = `${canvas.width} x ${canvas.height}px`;
-            saveState();
-            closeModal();
-        }
-
-        function invertColors() {
-            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-            const data = imageData.data;
-            
-            for (let i = 0; i < data.length; i += 4) {
-                data[i] = 255 - data[i];
-                data[i + 1] = 255 - data[i + 1];
-                data[i + 2] = 255 - data[i + 2];
-            }
-            
-            ctx.putImageData(imageData, 0, 0);
-            saveState();
-            closeModal();
-        }
-
-        function grayscale() {
-            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-            const data = imageData.data;
-            
-            for (let i = 0; i < data.length; i += 4) {
-                const avg = (data[i] + data[i + 1] + data[i + 2]) / 3;
-                data[i] = avg;
-                data[i + 1] = avg;
-                data[i + 2] = avg;
-            }
-            
-            ctx.putImageData(imageData, 0, 0);
-            saveState();
-            closeModal();
-        }
-
-        function redo() {
-            if (historyStep < history.length - 1) {
-                historyStep++;
-                const img = new Image();
-                img.src = history[historyStep];
-                img.onload = () => {
-                    ctx.clearRect(0, 0, canvas.width, canvas.height);
-                    ctx.drawImage(img, 0, 0);
-                };
-            }
-        }
-
-        function clearCanvas() {
-            if (confirm('Clear the entire canvas?')) {
-                ctx.fillStyle = '#FFFFFF';
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
-                saveState();
-            }
-        }
     </script>
 </body>
 </html>
