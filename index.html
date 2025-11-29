@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Godswillscorechat🌐🧊</title>
+    <title>Godswillscorechat🗨</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
@@ -40,6 +40,7 @@
         let groups = [];
         let friendRequests = [];
         let stories = [];
+        let allUsers = [];
 
         const icons = {
             camera: '📷',
@@ -49,7 +50,9 @@
             plus: '➕',
             close: '✖️',
             logout: '🚪',
-            fire: '🔥'
+            fire: '🔥',
+            check: '✓',
+            doubleCheck: '✓✓'
         };
 
         function render() {
@@ -66,6 +69,10 @@
                 app.innerHTML = renderGroups();
             } else if (currentView === 'groupChat') {
                 app.innerHTML = renderGroupChat();
+            } else if (currentView === 'createGroup') {
+                app.innerHTML = renderCreateGroup();
+            } else if (currentView === 'groupInfo') {
+                app.innerHTML = renderGroupInfo();
             }
         }
 
@@ -111,128 +118,136 @@
             
             const friendsHtml = friends.length === 0 
                 ? '<div class="text-center py-8 text-gray-500"><p>No friends yet. Send friend requests to start chatting!</p></div>'
-                : friends.map(friend => `
+                : friends.map(friend => {
+                    const friendMessages = messages.filter(m => 
+                        (m.from === friend.friendUsername && m.to === currentUser.username) ||
+                        (m.from === currentUser.username && m.to === friend.friendUsername)
+                    ).sort((a, b) => (b.timestamp?.seconds || 0) - (a.timestamp?.seconds || 0));
+                    
+                    const lastMessage = friendMessages[0];
+                    const lastMessageText = lastMessage 
+                        ? (lastMessage.imageUrl ? '📷 Photo' : lastMessage.text)
+                        : 'Tap to chat';
+                    
+                    return `
                     <div onclick="openChat('${friend.id}')" 
-                        class="bg-white p-4 rounded-xl shadow hover:shadow-md transition cursor-pointer">
+                        class="bg-white p-4 hover:bg-gray-50 transition cursor-pointer border-b">
                         <div class="flex items-center justify-between">
-                            <div class="flex items-center gap-3">
-                                <div class="w-12 h-12 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white text-2xl">
+                            <div class="flex items-center gap-3 flex-1">
+                                <div class="w-12 h-12 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white text-2xl flex-shrink-0">
                                     ${icons.user}
                                 </div>
-                                <div>
+                                <div class="flex-1 min-w-0">
                                     <p class="font-semibold">@${friend.friendUsername}</p>
-                                    <p class="text-sm text-gray-500">Tap to chat</p>
+                                    <p class="text-sm text-gray-500 truncate">${lastMessageText}</p>
                                 </div>
                             </div>
-                            <div class="flex items-center gap-2">
-                                <span class="text-2xl">${icons.fire}</span>
-                                <span class="font-bold text-yellow-500">${friend.streak || 0}</span>
+                            <div class="flex flex-col items-end gap-1">
+                                ${lastMessage ? `<span class="text-xs text-gray-400">${formatTime(lastMessage.timestamp)}</span>` : ''}
+                                <div class="flex items-center gap-1">
+                                    <span class="text-lg">${icons.fire}</span>
+                                    <span class="text-xs font-bold text-yellow-500">${friend.streak || 0}</span>
+                                </div>
                             </div>
                         </div>
                     </div>
-                `).join('');
+                `}).join('');
 
-            const groupsHtml = groups.slice(0, 3).map(group => `
+            const groupsHtml = groups.map(group => {
+                const groupMessages = messages.filter(m => m.groupId === group.id)
+                    .sort((a, b) => (b.timestamp?.seconds || 0) - (a.timestamp?.seconds || 0));
+                
+                const lastMessage = groupMessages[0];
+                const lastMessageText = lastMessage 
+                    ? (lastMessage.imageUrl ? '📷 Photo' : `${lastMessage.from}: ${lastMessage.text}`)
+                    : 'No messages yet';
+                
+                return `
                 <div onclick="openGroupChat('${group.id}')" 
-                    class="bg-white p-4 rounded-xl shadow hover:shadow-md transition cursor-pointer">
-                    <div class="flex items-center gap-3">
-                        <div class="w-12 h-12 rounded-full bg-gradient-to-br from-purple-400 to-purple-600 flex items-center justify-center text-white text-2xl">
-                            👥
+                    class="bg-white p-4 hover:bg-gray-50 transition cursor-pointer border-b">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-3 flex-1">
+                            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center text-white text-2xl flex-shrink-0">
+                                👥
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <p class="font-semibold">${group.name}</p>
+                                <p class="text-sm text-gray-500 truncate">${lastMessageText}</p>
+                            </div>
                         </div>
-                        <div>
-                            <p class="font-semibold">${group.name}</p>
-                            <p class="text-sm text-gray-500">${group.members.length} members</p>
-                        </div>
+                        ${lastMessage ? `<span class="text-xs text-gray-400">${formatTime(lastMessage.timestamp)}</span>` : ''}
                     </div>
                 </div>
-            `).join('');
+            `}).join('');
 
-            const storiesHtml = stories.map(story => `
+            const storiesHtml = stories.map(story => {
+                const isMyStory = story.username === currentUser.username;
+                return `
                 <button onclick="viewStory('${story.id}')" class="flex flex-col items-center flex-shrink-0">
-                    <div class="w-16 h-16 rounded-full bg-gradient-to-br from-pink-400 to-purple-600 p-0.5">
+                    <div class="w-16 h-16 rounded-full ${isMyStory ? 'bg-gradient-to-br from-yellow-400 to-yellow-600' : 'bg-gradient-to-br from-pink-400 to-purple-600'} p-0.5">
                         <img src="${story.imageUrl}" 
                             alt="Story by @${story.username}" 
                             class="w-full h-full rounded-full object-cover border-2 border-white">
                     </div>
-                    <span class="text-xs mt-1 max-w-[64px] truncate">@${story.username}</span>
+                    <span class="text-xs mt-1 max-w-[64px] truncate">${isMyStory ? 'My Story' : '@' + story.username}</span>
                 </button>
-            `).join('');
+            `}).join('');
 
             return `
-                <div class="flex flex-col h-screen bg-gray-100">
-                    <div class="bg-yellow-500 text-white p-4 shadow-lg">
+                <div class="flex flex-col h-screen bg-gray-50">
+                    <div class="bg-green-600 text-white p-4 shadow-lg">
                         <div class="flex items-center justify-between max-w-6xl mx-auto">
-                            <h1 class="text-2xl font-bold">Godswillscorechat🗨</h1>
-                            <div class="flex items-center gap-4">
-                                <button onclick="showFriendRequests()" class="relative p-2 bg-yellow-600 rounded-full hover:bg-yellow-700 transition">
+                            <h1 class="text-xl font-semibold">Godswillscorechat</h1>
+                            <div class="flex items-center gap-3">
+                                <button onclick="captureImage()" class="p-2 hover:bg-green-700 rounded-full transition">
+                                    ${icons.camera}
+                                </button>
+                                <button onclick="showFriendRequests()" class="relative p-2 hover:bg-green-700 rounded-full transition">
                                     📬
                                     ${pendingRequestsCount > 0 ? `<span class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">${pendingRequestsCount}</span>` : ''}
                                 </button>
-                                <span class="text-sm font-semibold">@${currentUser.username}</span>
-                                <button onclick="handleLogout()" 
-                                    class="p-2 bg-yellow-600 rounded-full hover:bg-yellow-700 transition">
+                                <button onclick="handleLogout()" class="p-2 hover:bg-green-700 rounded-full transition">
                                     ${icons.logout}
                                 </button>
                             </div>
                         </div>
                     </div>
 
-                    <div class="flex-1 overflow-y-auto p-4 max-w-6xl mx-auto w-full">
-                        <div class="mb-6">
-                            <h2 class="text-xl font-bold mb-3">Stories</h2>
-                            <div class="flex gap-4 overflow-x-auto pb-2">
-                                <button onclick="captureImage()" class="flex flex-col items-center flex-shrink-0">
-                                    <div class="w-16 h-16 rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600 flex items-center justify-center border-4 border-white shadow-lg text-white text-2xl">
-                                        ${icons.plus}
-                                    </div>
-                                    <span class="text-xs mt-1">Add Story</span>
-                                </button>
-                                ${storiesHtml}
-                            </div>
-                        </div>
-
-                        ${groups.length > 0 ? `
-                        <div class="mb-6">
-                            <div class="flex items-center justify-between mb-3">
-                                <h2 class="text-xl font-bold">Groups</h2>
-                                <button onclick="showAllGroups()" class="text-yellow-500 text-sm hover:underline">
-                                    View All
-                                </button>
-                            </div>
-                            ${groupsHtml}
-                        </div>
-                        ` : ''}
-
-                        <div>
-                            <div class="flex items-center justify-between mb-3">
-                                <h2 class="text-xl font-bold">Friends</h2>
-                                <button onclick="showAddFriend()" 
-                                    class="bg-yellow-500 text-white px-4 py-2 rounded-full text-sm hover:bg-yellow-600">
-                                    ${icons.plus} Add Friend
-                                </button>
-                            </div>
-                            ${friendsHtml}
+                    ${stories.length > 0 ? `
+                    <div class="bg-white border-b p-3">
+                        <div class="flex gap-3 overflow-x-auto">
+                            <button onclick="captureImage()" class="flex flex-col items-center flex-shrink-0">
+                                <div class="w-16 h-16 rounded-full bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center border-2 border-gray-400 text-2xl">
+                                    ${icons.plus}
+                                </div>
+                                <span class="text-xs mt-1">Add</span>
+                            </button>
+                            ${storiesHtml}
                         </div>
                     </div>
+                    ` : ''}
 
-                    <div class="bg-white border-t p-2">
-                        <div class="flex justify-around max-w-6xl mx-auto">
-                            <button onclick="goHome()" class="p-3 rounded-full bg-yellow-100">
-                                <span class="text-2xl">${icons.home}</span>
-                            </button>
-                            <button onclick="showAllGroups()" class="p-3 rounded-full">
-                                <span class="text-2xl">👥</span>
-                            </button>
-                            <button onclick="captureImage()" class="p-3 rounded-full">
-                                <span class="text-2xl">${icons.camera}</span>
-                            </button>
-                        </div>
+                    <div class="flex-1 overflow-y-auto">
+                        ${groups.length > 0 ? groupsHtml : ''}
+                        ${friendsHtml}
+                    </div>
+
+                    <div class="bg-white border-t p-2 flex justify-around">
+                        <button onclick="goHome()" class="p-3 text-green-600">
+                            <span class="text-2xl">💬</span>
+                        </button>
+                        <button onclick="showAllGroups()" class="p-3 text-gray-600">
+                            <span class="text-2xl">👥</span>
+                        </button>
+                        <button onclick="showAddFriend()" class="p-3 text-gray-600">
+                            <span class="text-2xl">➕</span>
+                        </button>
                     </div>
                 </div>
 
                 <input type="file" id="imageInput" accept="image/*" style="display:none;" onchange="handleImageSelect(event)">
                 
-                <div id="storyModal" class="hidden fixed inset-0 bg-black z-50 flex items-center justify-center">
+                <div id="storyModal" class="hidden fixed inset-0 bg-black z-50">
                     <button onclick="closeStory()" class="absolute top-4 right-4 text-white text-3xl z-10">
                         ${icons.close}
                     </button>
@@ -254,19 +269,28 @@
 
             const messagesHtml = chatMessages.map(msg => {
                 const isFromMe = msg.from === currentUser.username;
+                const time = formatTime(msg.timestamp);
+                
                 if (msg.imageUrl) {
                     return `
-                        <div class="flex ${isFromMe ? 'justify-end' : 'justify-start'} mb-2">
-                            <div class="max-w-[70%]">
-                                <img src="${msg.imageUrl}" alt="Snap" class="rounded-2xl shadow-lg w-full">
+                        <div class="flex ${isFromMe ? 'justify-end' : 'justify-start'} mb-1">
+                            <div class="max-w-[70%] relative">
+                                <img src="${msg.imageUrl}" alt="Photo" class="rounded-lg shadow w-full">
+                                <span class="absolute bottom-1 right-2 text-xs text-white bg-black bg-opacity-50 px-2 py-0.5 rounded">
+                                    ${time} ${isFromMe ? icons.doubleCheck : ''}
+                                </span>
                             </div>
                         </div>
                     `;
                 } else {
                     return `
-                        <div class="flex ${isFromMe ? 'justify-end' : 'justify-start'} mb-2">
-                            <div class="max-w-[70%] px-4 py-2 rounded-2xl ${isFromMe ? 'bg-yellow-500 text-white rounded-br-sm' : 'bg-gray-200 text-gray-800 rounded-bl-sm'}">
-                                <p class="break-words">${msg.text}</p>
+                        <div class="flex ${isFromMe ? 'justify-end' : 'justify-start'} mb-1">
+                            <div class="max-w-[70%] px-3 py-2 rounded-lg shadow-sm ${isFromMe ? 'bg-green-100 rounded-br-none' : 'bg-white rounded-bl-none'}">
+                                <p class="text-sm break-words">${msg.text}</p>
+                                <div class="flex items-center justify-end gap-1 mt-1">
+                                    <span class="text-xs text-gray-500">${time}</span>
+                                    ${isFromMe ? `<span class="text-xs text-blue-500">${icons.doubleCheck}</span>` : ''}
+                                </div>
                             </div>
                         </div>
                     `;
@@ -274,35 +298,114 @@
             }).join('');
 
             return `
-                <div class="flex flex-col h-screen bg-gray-100">
-                    <div class="bg-white p-4 shadow flex items-center gap-3">
-                        <button onclick="goHome()" class="text-gray-600 hover:text-gray-800 text-2xl">
+                <div class="flex flex-col h-screen bg-gray-50">
+                    <div class="bg-green-600 text-white p-3 shadow flex items-center gap-3">
+                        <button onclick="goHome()" class="text-white text-2xl">
                             ←
                         </button>
                         <div class="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white text-xl">
                             ${icons.user}
                         </div>
-                        <div>
+                        <div class="flex-1">
                             <p class="font-semibold">@${selectedFriend.friendUsername}</p>
-                            <p class="text-xs text-gray-500">${icons.fire} ${selectedFriend.streak || 0} day streak</p>
+                            <p class="text-xs text-green-100">Tap here for info</p>
                         </div>
                     </div>
 
-                    <div id="chatMessages" class="flex-1 overflow-y-auto p-4 flex flex-col">
-                        ${messagesHtml || '<div class="flex-1 flex items-center justify-center"><p class="text-center text-gray-500">No messages yet. Send a snap!</p></div>'}
+                    <div id="chatMessages" class="flex-1 overflow-y-auto p-3" style="background-image: url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22100%22 height=%22100%22><rect fill=%22%23e5ddd5%22 width=%22100%22 height=%22100%22/></svg>');">
+                        ${messagesHtml || '<div class="flex-1 flex items-center justify-center"><p class="text-center text-gray-500 bg-white px-4 py-2 rounded-lg shadow">No messages yet. Start chatting!</p></div>'}
                     </div>
 
-                    <div class="bg-white p-4 border-t">
+                    <div class="bg-gray-100 p-2 border-t">
                         <div class="flex gap-2 items-center">
                             <button onclick="captureImage()" 
-                                class="p-3 bg-yellow-500 text-white rounded-full hover:bg-yellow-600 text-xl flex-shrink-0">
+                                class="p-2 text-gray-600 hover:text-gray-800 text-2xl">
                                 ${icons.camera}
                             </button>
-                            <input type="text" id="messageInput" placeholder="Send a message..." 
-                                class="flex-1 px-4 py-3 border rounded-full focus:outline-none focus:ring-2 focus:ring-yellow-500"
+                            <input type="text" id="messageInput" placeholder="Message" 
+                                class="flex-1 px-4 py-2 rounded-full bg-white border focus:outline-none focus:ring-2 focus:ring-green-500"
                                 onkeypress="if(event.key==='Enter') sendMessage()">
                             <button onclick="sendMessage()" 
-                                class="p-3 bg-yellow-500 text-white rounded-full hover:bg-yellow-600 text-xl flex-shrink-0">
+                                class="p-2 bg-green-600 text-white rounded-full hover:bg-green-700">
+                                ${icons.send}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <input type="file" id="imageInput" accept="image/*" style="display:none;" onchange="handleImageSelect(event)">
+            `;
+        }
+
+        function renderGroupChat() {
+            if (!selectedGroup) return '';
+
+            const chatMessages = messages
+                .filter(m => m.groupId === selectedGroup.id)
+                .sort((a, b) => (a.timestamp?.seconds || 0) - (b.timestamp?.seconds || 0));
+
+            const messagesHtml = chatMessages.map(msg => {
+                const isFromMe = msg.from === currentUser.username;
+                const time = formatTime(msg.timestamp);
+                
+                if (msg.imageUrl) {
+                    return `
+                        <div class="flex ${isFromMe ? 'justify-end' : 'justify-start'} mb-1">
+                            <div class="max-w-[70%] relative">
+                                ${!isFromMe ? `<p class="text-xs font-semibold mb-1" style="color: ${getColorForUser(msg.from)}">~${msg.from}</p>` : ''}
+                                <img src="${msg.imageUrl}" alt="Photo" class="rounded-lg shadow w-full">
+                                <span class="absolute bottom-1 right-2 text-xs text-white bg-black bg-opacity-50 px-2 py-0.5 rounded">
+                                    ${time} ${isFromMe ? icons.doubleCheck : ''}
+                                </span>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    return `
+                        <div class="flex ${isFromMe ? 'justify-end' : 'justify-start'} mb-1">
+                            <div class="max-w-[70%] px-3 py-2 rounded-lg shadow-sm ${isFromMe ? 'bg-green-100 rounded-br-none' : 'bg-white rounded-bl-none'}">
+                                ${!isFromMe ? `<p class="text-xs font-semibold mb-1" style="color: ${getColorForUser(msg.from)}">~${msg.from}</p>` : ''}
+                                <p class="text-sm break-words">${msg.text}</p>
+                                <div class="flex items-center justify-end gap-1 mt-1">
+                                    <span class="text-xs text-gray-500">${time}</span>
+                                    ${isFromMe ? `<span class="text-xs text-blue-500">${icons.doubleCheck}</span>` : ''}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }
+            }).join('');
+
+            return `
+                <div class="flex flex-col h-screen bg-gray-50">
+                    <div class="bg-green-600 text-white p-3 shadow flex items-center gap-3">
+                        <button onclick="goHome()" class="text-white text-2xl">
+                            ←
+                        </button>
+                        <div class="w-10 h-10 rounded-full bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center text-white text-xl">
+                            👥
+                        </div>
+                        <div class="flex-1" onclick="showGroupInfo()">
+                            <p class="font-semibold">${selectedGroup.name}</p>
+                            <p class="text-xs text-green-100">${selectedGroup.members.join(', ')}</p>
+                        </div>
+                    </div>
+
+                    <div id="chatMessages" class="flex-1 overflow-y-auto p-3" style="background-image: url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22100%22 height=%22100%22><rect fill=%22%23e5ddd5%22 width=%22100%22 height=%22100%22/></svg>');">
+                        ${messagesHtml || '<div class="flex-1 flex items-center justify-center"><p class="text-center text-gray-500 bg-white px-4 py-2 rounded-lg shadow">No messages yet. Start the conversation!</p></div>'}
+                    </div>
+
+                    <div class="bg-gray-100 p-2 border-t">
+                        <div class="flex gap-2 items-center">
+                            <button onclick="captureImage()" 
+                                class="p-2 text-gray-600 hover:text-gray-800 text-2xl">
+                                ${icons.camera}
+                            </button>
+                            <input type="text" id="messageInput" placeholder="Message" 
+                                class="flex-1 px-4 py-2 rounded-full bg-white border focus:outline-none focus:ring-2 focus:ring-green-500"
+                                onkeypress="if(event.key==='Enter') sendGroupMessage()">
+                            <button onclick="sendGroupMessage()" 
+                                class="p-2 bg-green-600 text-white rounded-full hover:bg-green-700">
                                 ${icons.send}
                             </button>
                         </div>
@@ -319,7 +422,7 @@
             const requestsHtml = pendingRequests.length === 0
                 ? '<div class="text-center py-8 text-gray-500"><p>No pending friend requests</p></div>'
                 : pendingRequests.map(request => `
-                    <div class="bg-white p-4 rounded-xl shadow">
+                    <div class="bg-white p-4 border-b">
                         <div class="flex items-center justify-between">
                             <div class="flex items-center gap-3">
                                 <div class="w-12 h-12 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white text-2xl">
@@ -327,12 +430,12 @@
                                 </div>
                                 <div>
                                     <p class="font-semibold">@${request.from}</p>
-                                    <p class="text-sm text-gray-500">wants to be friends</p>
+                                    <p class="text-sm text-gray-500">wants to connect</p>
                                 </div>
                             </div>
                             <div class="flex gap-2">
                                 <button onclick="acceptFriendRequest('${request.id}', '${request.from}')" 
-                                    class="bg-yellow-500 text-white px-4 py-2 rounded-full text-sm hover:bg-yellow-600">
+                                    class="bg-green-500 text-white px-4 py-2 rounded-full text-sm hover:bg-green-600">
                                     Accept
                                 </button>
                                 <button onclick="rejectFriendRequest('${request.id}')" 
@@ -345,15 +448,15 @@
                 `).join('');
 
             return `
-                <div class="flex flex-col h-screen bg-gray-100">
-                    <div class="bg-white p-4 shadow flex items-center gap-3">
-                        <button onclick="goHome()" class="text-gray-600 hover:text-gray-800 text-2xl">
-                            ${icons.close}
+                <div class="flex flex-col h-screen bg-gray-50">
+                    <div class="bg-green-600 text-white p-4 shadow flex items-center gap-3">
+                        <button onclick="goHome()" class="text-white text-2xl">
+                            ←
                         </button>
-                        <h2 class="text-xl font-bold">Friend Requests</h2>
+                        <h2 class="text-xl font-semibold">Friend Requests</h2>
                     </div>
 
-                    <div class="flex-1 overflow-y-auto p-4 space-y-3">
+                    <div class="flex-1 overflow-y-auto">
                         ${requestsHtml}
                     </div>
                 </div>
@@ -362,12 +465,12 @@
 
         function renderGroups() {
             const groupsHtml = groups.length === 0
-                ? '<div class="text-center py-8 text-gray-500"><p>No groups yet. Create one to start!</p></div>'
+                ? '<div class="text-center py-8 text-gray-500"><p>No groups yet. Create one!</p></div>'
                 : groups.map(group => `
                     <div onclick="openGroupChat('${group.id}')" 
-                        class="bg-white p-4 rounded-xl shadow hover:shadow-md transition cursor-pointer">
+                        class="bg-white p-4 border-b hover:bg-gray-50 transition cursor-pointer">
                         <div class="flex items-center gap-3">
-                            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-purple-400 to-purple-600 flex items-center justify-center text-white text-2xl">
+                            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center text-white text-2xl">
                                 👥
                             </div>
                             <div>
@@ -379,101 +482,170 @@
                 `).join('');
 
             return `
-                <div class="flex flex-col h-screen bg-gray-100">
-                    <div class="bg-white p-4 shadow flex items-center justify-between">
+                <div class="flex flex-col h-screen bg-gray-50">
+                    <div class="bg-green-600 text-white p-4 shadow flex items-center justify-between">
                         <div class="flex items-center gap-3">
-                            <button onclick="goHome()" class="text-gray-600 hover:text-gray-800 text-2xl">
-                                ${icons.close}
+                            <button onclick="goHome()" class="text-white text-2xl">
+                                ←
                             </button>
-                            <h2 class="text-xl font-bold">Groups</h2>
+                            <h2 class="text-xl font-semibold">Groups</h2>
                         </div>
-                        <button onclick="createGroup()" 
-                            class="bg-yellow-500 text-white px-4 py-2 rounded-full text-sm hover:bg-yellow-600">
-                            ${icons.plus} Create Group
+                        <button onclick="showCreateGroup()" 
+                            class="bg-green-700 text-white p-2 rounded-full hover:bg-green-800">
+                            ${icons.plus}
                         </button>
                     </div>
 
-                    <div class="flex-1 overflow-y-auto p-4 space-y-3">
+                    <div class="flex-1 overflow-y-auto">
                         ${groupsHtml}
                     </div>
                 </div>
             `;
         }
 
-        function renderGroupChat() {
-            if (!selectedGroup) return '';
-
-            const chatMessages = messages
-                .filter(m => m.groupId === selectedGroup.id)
-                .sort((a, b) => (a.timestamp?.seconds || 0) - (b.timestamp?.seconds || 0));
-
-            const messagesHtml = chatMessages.map(msg => {
-                const isFromMe = msg.from === currentUser.username;
-                if (msg.imageUrl) {
-                    return `
-                        <div class="flex ${isFromMe ? 'justify-end' : 'justify-start'} mb-2">
-                            <div class="max-w-[70%]">
-                                ${!isFromMe ? `<p class="text-xs text-gray-500 mb-1 ml-2">@${msg.from}</p>` : ''}
-                                <img src="${msg.imageUrl}" alt="Snap" class="rounded-2xl shadow-lg w-full">
-                            </div>
+        function renderCreateGroup() {
+            const friendsCheckboxes = friends.map(friend => `
+                <label class="flex items-center gap-3 p-3 bg-white border-b hover:bg-gray-50 cursor-pointer">
+                    <input type="checkbox" value="${friend.friendUsername}" class="w-5 h-5 text-green-600 rounded">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white">
+                            ${icons.user}
                         </div>
-                    `;
-                } else {
-                    return `
-                        <div class="flex ${isFromMe ? 'justify-end' : 'justify-start'} mb-2">
-                            <div class="max-w-[70%]">
-                                ${!isFromMe ? `<p class="text-xs text-gray-500 mb-1 ml-2">@${msg.from}</p>` : ''}
-                                <div class="px-4 py-2 rounded-2xl ${isFromMe ? 'bg-yellow-500 text-white rounded-br-sm' : 'bg-gray-200 text-gray-800 rounded-bl-sm'}">
-                                    <p class="break-words">${msg.text}</p>
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                }
-            }).join('');
+                        <span class="font-medium">@${friend.friendUsername}</span>
+                    </div>
+                </label>
+            `).join('');
 
             return `
-                <div class="flex flex-col h-screen bg-gray-100">
-                    <div class="bg-white p-4 shadow flex items-center gap-3">
-                        <button onclick="goHome()" class="text-gray-600 hover:text-gray-800 text-2xl">
-                            ←
-                        </button>
-                        <div class="w-10 h-10 rounded-full bg-gradient-to-br from-purple-400 to-purple-600 flex items-center justify-center text-white text-xl">
-                            👥
+                <div class="flex flex-col h-screen bg-gray-50">
+                    <div class="bg-green-600 text-white p-4 shadow">
+                        <div class="flex items-center gap-3 mb-4">
+                            <button onclick="showAllGroups()" class="text-white text-2xl">
+                                ←
+                            </button>
+                            <h2 class="text-xl font-semibold">New Group</h2>
                         </div>
-                        <div>
-                            <p class="font-semibold">${selectedGroup.name}</p>
-                            <p class="text-xs text-gray-500">${selectedGroup.members.length} members</p>
-                        </div>
+                        <input type="text" id="groupNameInput" placeholder="Group name" 
+                            class="w-full px-4 py-2 rounded-lg text-gray-900 focus:outline-none">
                     </div>
 
-                    <div id="chatMessages" class="flex-1 overflow-y-auto p-4 flex flex-col">
-                        ${messagesHtml || '<div class="flex-1 flex items-center justify-center"><p class="text-center text-gray-500">No messages yet. Start the conversation!</p></div>'}
+                    <div class="flex-1 overflow-y-auto">
+                        <p class="p-3 text-sm text-gray-600 bg-gray-100">Select members</p>
+                        ${friendsCheckboxes || '<div class="text-center py-8 text-gray-500"><p>Add friends first to create groups</p></div>'}
                     </div>
 
+                    ${friends.length > 0 ? `
                     <div class="bg-white p-4 border-t">
-                        <div class="flex gap-2 items-center">
-                            <button onclick="captureImage()" 
-                                class="p-3 bg-yellow-500 text-white rounded-full hover:bg-yellow-600 text-xl flex-shrink-0">
-                                ${icons.camera}
-                            </button>
-                            <input type="text" id="messageInput" placeholder="Send a message..." 
-                                class="flex-1 px-4 py-3 border rounded-full focus:outline-none focus:ring-2 focus:ring-yellow-500"
-                                onkeypress="if(event.key==='Enter') sendGroupMessage()">
-                            <button onclick="sendGroupMessage()" 
-                                class="p-3 bg-yellow-500 text-white rounded-full hover:bg-yellow-600 text-xl flex-shrink-0">
-                                ${icons.send}
-                            </button>
-                        </div>
+                        <button onclick="createGroupWithMembers()" 
+                            class="w-full bg-green-600 text-white py-3 rounded-full font-semibold hover:bg-green-700">
+                            Create Group
+                        </button>
                     </div>
+                    ` : ''}
                 </div>
-
-                <input type="file" id="imageInput" accept="image/*" style="display:none;" onchange="handleImageSelect(event)">
             `;
         }
 
+        function renderGroupInfo() {
+            if (!selectedGroup) return '';
+
+            const membersHtml = selectedGroup.members.map(member => {
+                const isCreator = member === selectedGroup.creator;
+                const isMe = member === currentUser.username;
+                return `
+                <div class="flex items-center justify-between p-3 bg-white border-b">
+                    <div class="flex items-center gap
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white">
+                            ${icons.user}
+                        </div>
+                        <div>
+                            <p class="font-medium">@${member} ${isMe ? '(You)' : ''}</p>
+                            ${isCreator ? '<p class="text-xs text-green-600">Group Admin</p>' : ''}
+                        </div>
+                    </div>
+                    ${!isMe && currentUser.username === selectedGroup.creator ? `
+                    <button onclick="removeGroupMember('${member}')" class="text-red-500 text-sm">
+                        Remove
+                    </button>
+                    ` : ''}
+                </div>
+            `}).join('');
+
+            return `
+                <div class="flex flex-col h-screen bg-gray-50">
+                    <div class="bg-green-600 text-white p-4 shadow">
+                        <div class="flex items-center gap-3">
+                            <button onclick="openGroupChat('${selectedGroup.id}')" class="text-white text-2xl">
+                                ←
+                            </button>
+                            <h2 class="text-xl font-semibold">Group Info</h2>
+                        </div>
+                    </div>
+
+                    <div class="bg-white p-6 text-center border-b">
+                        <div class="w-24 h-24 rounded-full bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center text-white text-5xl mx-auto mb-3">
+                            👥
+                        </div>
+                        <h3 class="text-xl font-bold">${selectedGroup.name}</h3>
+                        <p class="text-sm text-gray-500">Group · ${selectedGroup.members.length} members</p>
+                    </div>
+
+                    <div class="flex-1 overflow-y-auto">
+                        <p class="p-3 text-sm font-semibold text-gray-600 bg-gray-100">${selectedGroup.members.length} members</p>
+                        ${membersHtml}
+                        
+                        ${currentUser.username === selectedGroup.creator ? `
+                        <button onclick="showAddGroupMembers()" class="w-full p-4 bg-white border-b text-green-600 hover:bg-gray-50 text-left">
+                            <span class="text-2xl mr-3">${icons.plus}</span>
+                            Add members
+                        </button>
+                        ` : ''}
+                    </div>
+
+                    ${currentUser.username === selectedGroup.creator ? `
+                    <div class="bg-white p-4 border-t">
+                        <button onclick="deleteGroup()" class="w-full text-red-500 font-semibold">
+                            Delete Group
+                        </button>
+                    </div>
+                    ` : `
+                    <div class="bg-white p-4 border-t">
+                        <button onclick="leaveGroup()" class="w-full text-red-500 font-semibold">
+                            Leave Group
+                        </button>
+                    </div>
+                    `}
+                </div>
+            `;
+        }
+
+        function formatTime(timestamp) {
+            if (!timestamp) return '';
+            const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp.seconds * 1000);
+            const now = new Date();
+            const diff = now - date;
+            
+            if (diff < 86400000) { // Less than 24 hours
+                return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+            } else if (diff < 604800000) { // Less than 7 days
+                return date.toLocaleDateString('en-US', { weekday: 'short' });
+            } else {
+                return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            }
+        }
+
+        function getColorForUser(username) {
+            const colors = ['#1e88e5', '#e53935', '#43a047', '#fb8c00', '#8e24aa', '#00acc1', '#d81b60', '#546e7a'];
+            let hash = 0;
+            for (let i = 0; i < username.length; i++) {
+                hash = username.charCodeAt(i) + ((hash << 5) - hash);
+            }
+            return colors[Math.abs(hash) % colors.length];
+        }
+
         async function handleSignUp() {
-            const username = document.getElementById('username').value;
+            const username = document.getElementById('username').value.trim();
             const password = document.getElementById('password').value;
             const errorDiv = document.getElementById('authError');
 
@@ -506,7 +678,7 @@
         }
 
         async function handleLogin() {
-            const username = document.getElementById('username').value;
+            const username = document.getElementById('username').value.trim();
             const password = document.getElementById('password').value;
             const errorDiv = document.getElementById('authError');
 
@@ -550,6 +722,16 @@
 
         function showAllGroups() {
             currentView = 'groups';
+            render();
+        }
+
+        function showCreateGroup() {
+            currentView = 'createGroup';
+            render();
+        }
+
+        function showGroupInfo() {
+            currentView = 'groupInfo';
             render();
         }
 
@@ -635,6 +817,7 @@
                     streak: 0,
                     createdAt: firebase.firestore.FieldValue.serverTimestamp()
                 });
+                
                 alert('Friend request accepted!');
                 goHome();
             } catch (error) {
@@ -655,15 +838,26 @@
             }
         }
 
-        async function createGroup() {
-            const groupName = prompt('Enter group name:');
-            if (!groupName) return;
+        async function createGroupWithMembers() {
+            const groupName = document.getElementById('groupNameInput').value.trim();
+            if (!groupName) {
+                alert('Please enter a group name');
+                return;
+            }
+
+            const checkboxes = document.querySelectorAll('input[type="checkbox"]:checked');
+            const selectedMembers = Array.from(checkboxes).map(cb => cb.value);
             
+            if (selectedMembers.length === 0) {
+                alert('Please select at least one member');
+                return;
+            }
+
             try {
                 await db.collection('groups').add({
                     name: groupName,
                     creator: currentUser.username,
-                    members: [currentUser.username],
+                    members: [currentUser.username, ...selectedMembers],
                     createdAt: firebase.firestore.FieldValue.serverTimestamp()
                 });
                 
@@ -672,6 +866,81 @@
             } catch (error) {
                 console.error('Create group error:', error);
                 alert('Failed to create group');
+            }
+        }
+
+        async function showAddGroupMembers() {
+            const availableFriends = friends.filter(f => 
+                !selectedGroup.members.includes(f.friendUsername)
+            );
+
+            if (availableFriends.length === 0) {
+                alert('All your friends are already in this group');
+                return;
+            }
+
+            const membersList = availableFriends.map(f => f.friendUsername).join('\n');
+            const username = prompt(`Select a friend to add:\n\n${membersList}\n\nEnter username:`);
+            
+            if (!username) return;
+
+            if (!availableFriends.find(f => f.friendUsername === username)) {
+                alert('User not found in your friends list or already in group');
+                return;
+            }
+
+            try {
+                await db.collection('groups').doc(selectedGroup.id).update({
+                    members: firebase.firestore.FieldValue.arrayUnion(username)
+                });
+                alert('Member added!');
+                showGroupInfo();
+            } catch (error) {
+                console.error('Add member error:', error);
+                alert('Failed to add member');
+            }
+        }
+
+        async function removeGroupMember(username) {
+            if (!confirm(`Remove @${username} from the group?`)) return;
+
+            try {
+                await db.collection('groups').doc(selectedGroup.id).update({
+                    members: firebase.firestore.FieldValue.arrayRemove(username)
+                });
+                alert('Member removed!');
+                showGroupInfo();
+            } catch (error) {
+                console.error('Remove member error:', error);
+                alert('Failed to remove member');
+            }
+        }
+
+        async function leaveGroup() {
+            if (!confirm('Are you sure you want to leave this group?')) return;
+
+            try {
+                await db.collection('groups').doc(selectedGroup.id).update({
+                    members: firebase.firestore.FieldValue.arrayRemove(currentUser.username)
+                });
+                alert('You left the group');
+                goHome();
+            } catch (error) {
+                console.error('Leave group error:', error);
+                alert('Failed to leave group');
+            }
+        }
+
+        async function deleteGroup() {
+            if (!confirm('Are you sure you want to delete this group? This cannot be undone.')) return;
+
+            try {
+                await db.collection('groups').doc(selectedGroup.id).delete();
+                alert('Group deleted');
+                goHome();
+            } catch (error) {
+                console.error('Delete group error:', error);
+                alert('Failed to delete group');
             }
         }
 
@@ -758,10 +1027,11 @@
                         imageUrl: data.secure_url,
                         publicId: data.public_id,
                         timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-                        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000)
+                        expiresAt: firebase.firestore.Timestamp.fromDate(new Date(Date.now() + 24 * 60 * 60 * 1000))
                     });
 
                     alert('Story posted! 🎉');
+                    render();
                 } catch (error) {
                     console.error('Upload error:', error);
                     alert('Failed to upload story');
@@ -808,7 +1078,7 @@
                     });
                 }
 
-                alert('Snap sent! 🎉');
+                alert('Photo sent! 🎉');
                 scrollToBottom();
             } catch (error) {
                 console.error('Upload error:', error);
@@ -824,11 +1094,21 @@
             const content = document.getElementById('storyContent');
             
             content.innerHTML = `
-                <div class="relative w-full max-w-lg">
-                    <div class="absolute top-4 left-4 z-10 bg-black bg-opacity-50 px-3 py-2 rounded-full">
-                        <span class="text-white font-semibold">@${story.username}</span>
+                <div class="relative w-full max-w-lg h-full flex flex-col">
+                    <div class="absolute top-4 left-4 right-4 z-10 flex items-center justify-between">
+                        <div class="flex items-center gap-2 bg-black bg-opacity-50 px-3 py-2 rounded-full">
+                            <div class="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white text-sm">
+                                ${icons.user}
+                            </div>
+                            <span class="text-white font-semibold">@${story.username}</span>
+                        </div>
+                        <span class="text-white text-sm bg-black bg-opacity-50 px-3 py-2 rounded-full">
+                            ${formatTime(story.timestamp)}
+                        </span>
                     </div>
-                    <img src="${story.imageUrl}" alt="Story" class="w-full h-auto max-h-screen object-contain">
+                    <div class="flex-1 flex items-center justify-center">
+                        <img src="${story.imageUrl}" alt="Story" class="max-w-full max-h-full object-contain">
+                    </div>
                 </div>
             `;
             
@@ -900,16 +1180,18 @@
                     });
                 
                 db.collection('stories')
-                    .where('expiresAt', '>', new Date())
-                    .orderBy('expiresAt', 'desc')
-                    .orderBy('timestamp', 'desc')
+                    .where('expiresAt', '>', firebase.firestore.Timestamp.now())
                     .onSnapshot(snapshot => {
                         stories = snapshot.docs.map(doc => ({
                             id: doc.id,
                             ...doc.data()
-                        }));
+                        })).sort((a, b) => (b.timestamp?.seconds || 0) - (a.timestamp?.seconds || 0));
                         render();
                     });
+
+                db.collection('users').onSnapshot(snapshot => {
+                    allUsers = snapshot.docs.map(doc => doc.data());
+                });
                 
                 render();
             } else {
@@ -920,6 +1202,7 @@
                 groups = [];
                 friendRequests = [];
                 stories = [];
+                allUsers = [];
                 render();
             }
         });
