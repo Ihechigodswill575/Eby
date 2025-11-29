@@ -345,7 +345,7 @@
                                 </div>
                                 ${isFromMe ? `
                                 <div class="absolute -right-16 top-0 opacity-0 group-hover:opacity-100 transition flex gap-1">
-                                    <button onclick="startEditMessage('${msg.id}', \`${msg.text.replace(/`/g, '\\`')}\`)" class="bg-blue-500 text-white p-1 rounded text-xs">
+                                    <button onclick="startEditMessage('${msg.id}', \`${msg.text.replace(/`/g, '\\`').replace(/\\/g, '\\\\')}\`)" class="bg-blue-500 text-white p-1 rounded text-xs">
                                         ${icons.edit}
                                     </button>
                                     <button onclick="deleteMessage('${msg.id}')" class="bg-red-500 text-white p-1 rounded text-xs">
@@ -445,7 +445,7 @@
                                 </div>
                                 ${isFromMe ? `
                                 <div class="absolute -right-16 top-0 opacity-0 group-hover:opacity-100 transition flex gap-1">
-                                    <button onclick="startEditMessage('${msg.id}', \`${msg.text.replace(/`/g, '\\`')}\`)" class="bg-blue-500 text-white p-1 rounded text-xs">
+                                    <button onclick="startEditMessage('${msg.id}', \`${msg.text.replace(/`/g, '\\`').replace(/\\/g, '\\\\')}\`)" class="bg-blue-500 text-white p-1 rounded text-xs">
                                         ${icons.edit}
                                     </button>
                                     <button onclick="deleteMessage('${msg.id}')" class="bg-red-500 text-white p-1 rounded text-xs">
@@ -509,8 +509,7 @@
         function renderFriendRequests() {
             const pendingRequests = friendRequests.filter(r => r.to === currentUser.username && r.status === 'pending');
             
-            const request
-            pendingRequests.length === 0
+            const requestsHtml = pendingRequests.length === 0
                 ? '<div class="text-center py-8 text-gray-500"><p>No pending friend requests</p></div>'
                 : pendingRequests.map(request => `
                     <div class="bg-white p-4 border-b">
@@ -518,7 +517,7 @@
                             <div class="flex items-center gap-3">
                                 <div class="w-12 h-12 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white text-2xl">
                                     ${icons.user}
-                                </div>
+                                    </div>
                                 <div>
                                     <p class="font-semibold">@${request.from}</p>
                                     <p class="text-sm text-gray-500">wants to connect</p>
@@ -1260,8 +1259,7 @@
         }
 
         async function editGroupInfo() {
-            const newName = prompt('Enter
-                                   new group name:', selectedGroup.name);
+            const newName = prompt('Enter new group name:', selectedGroup.name);
             if (!newName || newName === selectedGroup.name) {
                 const newBio = prompt('Enter new group bio:', selectedGroup.bio || '');
                 if (newBio !== null && newBio !== selectedGroup.bio) {
@@ -1277,8 +1275,7 @@
                     }
                 }
                 return;
-            }
-
+        }
             try {
                 await db.collection('groups').doc(selectedGroup.id).update({
                     name: newName
