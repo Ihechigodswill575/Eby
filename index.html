@@ -1,795 +1,484 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { Camera, Send, User, MessageCircle, Home, Plus, X, Loader, LogOut, UserPlus } from 'lucide-react';
-import { initializeApp } from 'firebase/app';
-import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from 'firebase/auth';
-import { getFirestore, collection, addDoc, query, where, onSnapshot, getDocs, setDoc, doc, orderBy, serverTimestamp } from 'firebase/firestore';
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Godswillscorechat🗨</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+</head>
+<body class="bg-gray-100">
+    <div id="app"></div>
 
-// Firebase Configuration
-const firebaseConfig = {
-  apiKey: "AIzaSyBzUELxbbaL6Wb_M1uNhjwlZHVTorN9XJs",
-  authDomain: "my-whatsapp-2c1af.firebaseapp.com",
-  projectId: "my-whatsapp-2c1af",
-  storageBucket: "my-whatsapp-2c1af.firebasestorage.app",
-  messagingSenderId: "1089455460888",
-  appId: "1:1089455460888:web:d0c8dea185ba6769ebe96d"
-};
+    <script>
+        // Firebase Configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyBzUELxbbaL6Wb_M1uNhjwlZHVTorN9XJs",
+            authDomain: "my-whatsapp-2c1af.firebaseapp.com",
+            projectId: "my-whatsapp-2c1af",
+            storageBucket: "my-whatsapp-2c1af.firebasestorage.app",
+            messagingSenderId: "1089455460888",
+            appId: "1:1089455460888:web:d0c8dea185ba6769ebe96d"
+        };
 
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
 
-// Cloudinary Configuration
-const CLOUDINARY_CLOUD_NAME = 'dzxckgbzp';
-const CLOUDINARY_UPLOAD_PRESET = 'godswillscorechat';
-const CLOUDINARY_UPLOAD_URL = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`;
+        // Cloudinary Configuration
+        const CLOUDINARY_CLOUD_NAME = 'dzxckgbzp';
+        const CLOUDINARY_UPLOAD_PRESET = 'godswillscorechat';
+        const CLOUDINARY_UPLOAD_URL = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`;
 
-const App = () => {
-  const [user, setUser] = useState(null);
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-  const [isSignUp, setIsSignUp] = useState(false);
-  const [view, setView] = useState('home');
-  const [messages, setMessages] = useState([]);
-  const [allUsers, setAllUsers] = useState([]);
-  const [friends, setFriends] = useState([]);
-  const [showCamera, setShowCamera] = useState(false);
-  const [capturedImage, setCapturedImage] = useState(null);
-  const [messageText, setMessageText] = useState('');
-  const [selectedFriend, setSelectedFriend] = useState(null);
-  const [uploading, setUploading] = useState(false);
-  const [error, setError] = useState('');
-  const [showAddFriend, setShowAddFriend] = useState(false);
-  const videoRef = useRef(null);
-  const canvasRef = useRef(null);
-  const fileInputRef = useRef(null);
+        // App State
+        let currentUser = null;
+        let currentView = 'auth';
+        let selectedFriend = null;
+        let messages = [];
+        let friends = [];
+        let allUsers = [];
 
-  // Listen to auth state
-  useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged(async (firebaseUser) => {
-      if (firebaseUser) {
-        // Get user data from Firestore
-        const userDoc = await getDocs(query(collection(db, 'users'), where('uid', '==', firebaseUser.uid)));
-        if (!userDoc.empty) {
-          const userData = userDoc.docs[0].data();
-          setUser(userData);
-          loadFriends(userData.username);
-          loadMessages(userData.username);
+        // Icons (using Unicode)
+        const icons = {
+            camera: '📷',
+            send: '📤',
+            user: '👤',
+            home: '🏠',
+            plus: '➕',
+            close: '✖️',
+            logout: '🚪',
+            fire: '🔥'
+        };
+
+        // Render Functions
+        function render() {
+            const app = document.getElementById('app');
+            if (!currentUser) {
+                app.innerHTML = renderAuth();
+            } else if (currentView === 'home') {
+                app.innerHTML = renderHome();
+            } else if (currentView === 'chat') {
+                app.innerHTML = renderChat();
+            }
+            attachEventListeners();
         }
-      } else {
-        setUser(null);
-      }
-    });
-    return () => unsubscribe();
-  }, []);
 
-  // Load all users for adding friends
-  useEffect(() => {
-    if (user) {
-      const q = query(collection(db, 'users'));
-      const unsubscribe = onSnapshot(q, (snapshot) => {
-        const users = snapshot.docs
-          .map(doc => doc.data())
-          .filter(u => u.username !== user.username);
-        setAllUsers(users);
-      });
-      return () => unsubscribe();
-    }
-  }, [user]);
-
-  // Load friends
-  const loadFriends = (username) => {
-    const q = query(collection(db, 'friends'), where('user', '==', username));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const friendsList = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-      setFriends(friendsList);
-    });
-    return () => unsubscribe();
-  };
-
-  // Load messages
-  const loadMessages = (username) => {
-    const q1 = query(
-      collection(db, 'messages'),
-      where('to', '==', username),
-      orderBy('timestamp', 'desc')
-    );
-    
-    const q2 = query(
-      collection(db, 'messages'),
-      where('from', '==', username),
-      orderBy('timestamp', 'desc')
-    );
-
-    const unsubscribe1 = onSnapshot(q1, (snapshot) => {
-      const msgs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setMessages(prev => {
-        const filtered = prev.filter(m => m.from === username);
-        return [...filtered, ...msgs];
-      });
-    });
-
-    const unsubscribe2 = onSnapshot(q2, (snapshot) => {
-      const msgs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setMessages(prev => {
-        const filtered = prev.filter(m => m.to === username);
-        return [...filtered, ...msgs];
-      });
-    });
-
-    return () => {
-      unsubscribe1();
-      unsubscribe2();
-    };
-  };
-
-  // Sign up with username
-  const handleSignUp = async (e) => {
-    e.preventDefault();
-    setError('');
-
-    if (!username || !password) {
-      setError('Please enter username and password');
-      return;
-    }
-
-    if (username.length < 3) {
-      setError('Username must be at least 3 characters');
-      return;
-    }
-
-    try {
-      // Check if username exists
-      const usernameQuery = query(collection(db, 'users'), where('username', '==', username));
-      const existingUsers = await getDocs(usernameQuery);
-      
-      if (!existingUsers.empty) {
-        setError('Username already taken. Please choose another.');
-        return;
-      }
-
-      // Create Firebase auth user with email format
-      const email = `${username}@godswillscorechat.app`;
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      
-      // Save user data to Firestore
-      await setDoc(doc(db, 'users', userCredential.user.uid), {
-        uid: userCredential.user.uid,
-        username: username,
-        createdAt: serverTimestamp()
-      });
-
-      setUsername('');
-      setPassword('');
-    } catch (err) {
-      console.error(err);
-      setError(err.message || 'Sign up failed. Please try again.');
-    }
-  };
-
-  // Login with username
-  const handleLogin = async (e) => {
-    e.preventDefault();
-    setError('');
-
-    if (!username || !password) {
-      setError('Please enter username and password');
-      return;
-    }
-
-    try {
-      // Find user by username
-      const usernameQuery = query(collection(db, 'users'), where('username', '==', username));
-      const existingUsers = await getDocs(usernameQuery);
-      
-      if (existingUsers.empty) {
-        setError('Username not found');
-        return;
-      }
-
-      // Login with email format
-      const email = `${username}@godswillscorechat.app`;
-      await signInWithEmailAndPassword(auth, email, password);
-      
-      setUsername('');
-      setPassword('');
-    } catch (err) {
-      console.error(err);
-      setError('Incorrect password or username');
-    }
-  };
-
-  const handleLogout = async () => {
-    await signOut(auth);
-    setUser(null);
-    setView('home');
-    setSelectedFriend(null);
-  };
-
-  // Add friend
-  const addFriend = async (friendUsername) => {
-    try {
-      await addDoc(collection(db, 'friends'), {
-        user: user.username,
-        friendUsername: friendUsername,
-        streak: 0,
-        addedAt: serverTimestamp()
-      });
-      setShowAddFriend(false);
-    } catch (error) {
-      console.error('Error adding friend:', error);
-      alert('Failed to add friend');
-    }
-  };
-
-  // Camera functions
-  const startCamera = async () => {
-    setShowCamera(true);
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ 
-        video: { facingMode: 'user', width: 1280, height: 720 } 
-      });
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-      }
-    } catch (error) {
-      console.error('Camera access denied:', error);
-      alert('Camera access denied. You can still upload images from your device!');
-      setShowCamera(false);
-    }
-  };
-
-  const capturePhoto = () => {
-    const canvas = canvasRef.current;
-    const video = videoRef.current;
-    
-    if (canvas && video) {
-      canvas.width = video.videoWidth || 640;
-      canvas.height = video.videoHeight || 480;
-      const ctx = canvas.getContext('2d');
-      ctx.drawImage(video, 0, 0);
-      
-      const imageData = canvas.toDataURL('image/jpeg', 0.8);
-      setCapturedImage(imageData);
-      stopCamera();
-    }
-  };
-
-  const stopCamera = () => {
-    if (videoRef.current && videoRef.current.srcObject) {
-      videoRef.current.srcObject.getTracks().forEach(track => track.stop());
-    }
-    setShowCamera(false);
-  };
-
-  const handleFileSelect = (e) => {
-    const file = e.target.files[0];
-    if (file && file.type.startsWith('image/')) {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        setCapturedImage(event.target.result);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  // Upload to Cloudinary
-  const uploadToCloudinary = async (imageData) => {
-    setUploading(true);
-    try {
-      const blob = await fetch(imageData).then(r => r.blob());
-      
-      const formData = new FormData();
-      formData.append('file', blob);
-      formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
-      formData.append('folder', 'godswillscorechat');
-      
-      const response = await fetch(CLOUDINARY_UPLOAD_URL, {
-        method: 'POST',
-        body: formData
-      });
-      
-      if (!response.ok) {
-        throw new Error('Upload failed');
-      }
-      
-      const data = await response.json();
-      setUploading(false);
-      return {
-        url: data.secure_url,
-        public_id: data.public_id
-      };
-    } catch (error) {
-      setUploading(false);
-      console.error('Cloudinary upload error:', error);
-      alert('Failed to upload image. Please try again.');
-      return null;
-    }
-  };
-
-  // Send snap
-  const sendSnap = async () => {
-    if (!capturedImage || !selectedFriend) return;
-    
-    try {
-      const uploadResult = await uploadToCloudinary(capturedImage);
-      
-      if (!uploadResult) {
-        return;
-      }
-      
-      await addDoc(collection(db, 'messages'), {
-        from: user.username,
-        to: selectedFriend.friendUsername,
-        imageUrl: uploadResult.url,
-        publicId: uploadResult.public_id,
-        timestamp: serverTimestamp(),
-        type: 'snap'
-      });
-      
-      // Update streak
-      const friendDoc = friends.find(f => f.friendUsername === selectedFriend.friendUsername);
-      if (friendDoc) {
-        await setDoc(doc(db, 'friends', friendDoc.id), {
-          ...friendDoc,
-          streak: (friendDoc.streak || 0) + 1
-        });
-      }
-      
-      setCapturedImage(null);
-      alert('Snap sent! 🎉');
-    } catch (error) {
-      console.error('Send snap error:', error);
-      alert('Failed to send snap. Please try again.');
-    }
-  };
-
-  // Send text message
-  const sendMessage = async () => {
-    if (!messageText.trim() || !selectedFriend) return;
-    
-    try {
-      await addDoc(collection(db, 'messages'), {
-        from: user.username,
-        to: selectedFriend.friendUsername,
-        text: messageText,
-        timestamp: serverTimestamp(),
-        type: 'text'
-      });
-      
-      setMessageText('');
-    } catch (error) {
-      console.error('Send message error:', error);
-      alert('Failed to send message');
-    }
-  };
-
-  // Calculate time ago
-  const timeAgo = (timestamp) => {
-    if (!timestamp) return 'just now';
-    const seconds = Math.floor((Date.now() - timestamp.toMillis()) / 1000);
-    if (seconds < 60) return `${seconds}s ago`;
-    const minutes = Math.floor(seconds / 60);
-    if (minutes < 60) return `${minutes}m ago`;
-    const hours = Math.floor(minutes / 60);
-    if (hours < 24) return `${hours}h ago`;
-    return `${Math.floor(hours / 24)}d ago`;
-  };
-
-  // Login/Signup Screen
-  if (!user) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-yellow-300 via-yellow-400 to-yellow-500">
-        <div className="bg-white p-8 rounded-3xl shadow-2xl max-w-md w-full mx-4">
-          <h1 className="text-4xl font-bold mb-2 text-yellow-500 text-center">Godswillscorechat🗨</h1>
-          <p className="text-gray-600 mb-6 text-center">Share moments with real people</p>
-          
-          <form onSubmit={isSignUp ? handleSignUp : handleLogin} className="space-y-4">
-            <input
-              type="text"
-              placeholder="Username"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              className="w-full px-4 py-3 border rounded-full focus:outline-none focus:ring-2 focus:ring-yellow-500"
-              required
-            />
-            <input
-              type="password"
-              placeholder="Password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-3 border rounded-full focus:outline-none focus:ring-2 focus:ring-yellow-500"
-              required
-            />
-            
-            {error && <p className="text-red-500 text-sm text-center">{error}</p>}
-            
-            <button
-            onClick={() => setShowAddFriend(true)}
-            className="p-3 rounded-full"
-          >
-            <UserPlus className="text-gray-600" size={24} />
-          </button>
-          <button className="p-3 rounded-full">
-            <MessageCircle className="text-gray-600" size={24} />
-          </button>
-          <button className="p-3 rounded-full">
-            <User className="text-gray-600" size={24} />
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-export default App;
-              type="submit"
-              className="w-full bg-yellow-500 text-white py-3 px-6 rounded-full font-semibold hover:bg-yellow-600 transition"
-            >
-              {isSignUp ? 'Sign Up' : 'Log In'}
-            </button>
-          </form>
-          
-          <button
-            onClick={() => {
-              setIsSignUp(!isSignUp);
-              setError('');
-            }}
-            className="w-full mt-4 text-yellow-600 hover:text-yellow-700 text-sm"
-          >
-            {isSignUp ? 'Already have an account? Log In' : "Don't have an account? Sign Up"}
-          </button>
-          
-          <div className="mt-6 p-4 bg-yellow-50 rounded-xl">
-            <p className="text-xs text-gray-600">
-              <strong>✅ Real-time Chat:</strong><br/>
-              • Firebase Auth & Firestore<br/>
-              • Cloudinary Image Storage<br/>
-              • Message real people instantly
-            </p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="flex flex-col h-screen bg-gray-100">
-      {/* Header */}
-      <div className="bg-yellow-500 text-white p-4 shadow-lg">
-        <div className="flex items-center justify-between max-w-6xl mx-auto">
-          <h1 className="text-2xl font-bold">Godswillscorechat🗨</h1>
-          <div className="flex items-center gap-4">
-            <span className="text-sm font-semibold">@{user.username}</span>
-            <button
-              onClick={handleLogout}
-              className="p-2 bg-yellow-600 rounded-full hover:bg-yellow-700 transition"
-            >
-              <LogOut size={18} />
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Main Content */}
-      <div className="flex-1 overflow-hidden">
-        {view === 'home' && (
-          <div className="max-w-6xl mx-auto p-4 h-full overflow-y-auto">
-            {/* Stories Section */}
-            <div className="mb-6">
-              <h2 className="text-xl font-bold mb-3">Stories</h2>
-              <div className="flex gap-4 overflow-x-auto pb-2">
-                <button
-                  onClick={startCamera}
-                  className="flex flex-col items-center flex-shrink-0"
-                >
-                  <div className="w-16 h-16 rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600 flex items-center justify-center border-4 border-white shadow-lg">
-                    <Plus className="text-white" size={24} />
-                  </div>
-                  <span className="text-xs mt-1">Add Story</span>
-                </button>
-                {friends.map(friend => (
-                  <div key={friend.id} className="flex flex-col items-center flex-shrink-0">
-                    <div className="w-16 h-16 rounded-full bg-gradient-to-br from-purple-400 to-pink-500 flex items-center justify-center border-4 border-white shadow-lg">
-                      <User className="text-white" size={24} />
-                    </div>
-                    <span className="text-xs mt-1 max-w-16 truncate">{friend.friendUsername}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Friends/Chats Section */}
-            <div>
-              <div className="flex items-center justify-between mb-3">
-                <h2 className="text-xl font-bold">Friends</h2>
-                <button
-                  onClick={() => setShowAddFriend(true)}
-                  className="flex items-center gap-2 bg-yellow-500 text-white px-4 py-2 rounded-full text-sm hover:bg-yellow-600"
-                >
-                  <UserPlus size={18} />
-                  Add Friend
-                </button>
-              </div>
-              
-              {friends.length === 0 ? (
-                <div className="text-center py-8 text-gray-500">
-                  <p>No friends yet. Add some friends to start chatting!</p>
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  {friends.map(friend => {
-                    const unreadMessages = messages.filter(m => 
-                      m.to === user.username && m.from === friend.friendUsername
-                    ).length;
-                    
-                    const lastMessage = messages
-                      .filter(m => 
-                        (m.from === user.username && m.to === friend.friendUsername) ||
-                        (m.to === user.username && m.from === friend.friendUsername)
-                      )
-                      .sort((a, b) => {
-                        const timeA = a.timestamp?.toMillis() || 0;
-                        const timeB = b.timestamp?.toMillis() || 0;
-                        return timeB - timeA;
-                      })[0];
-                    
-                    return (
-                      <div
-                        key={friend.id}
-                        onClick={() => {
-                          setSelectedFriend(friend);
-                          setView('chat');
-                        }}
-                        className="bg-white p-4 rounded-xl shadow hover:shadow-md transition cursor-pointer"
-                      >
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-3">
-                            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center relative">
-                              <User className="text-white" size={20} />
-                              {unreadMessages > 0 && (
-                                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                                  {unreadMessages}
-                                </span>
-                              )}
-                            </div>
-                            <div>
-                              <p className="font-semibold">@{friend.friendUsername}</p>
-                              <p className="text-sm text-gray-500">
-                                {lastMessage ? timeAgo(lastMessage.timestamp) : 'No messages yet'}
-                              </p>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <span className="text-2xl">🔥</span>
-                            <span className="font-bold text-yellow-500">{friend.streak || 0}</span>
-                          </div>
+        function renderAuth() {
+            return `
+                <div class="flex items-center justify-center min-h-screen bg-gradient-to-br from-yellow-300 via-yellow-400 to-yellow-500">
+                    <div class="bg-white p-8 rounded-3xl shadow-2xl max-w-md w-full mx-4">
+                        <h1 class="text-4xl font-bold mb-2 text-yellow-500 text-center">Godswillscorechat🗨</h1>
+                        <p class="text-gray-600 mb-6 text-center">Share moments with real people</p>
+                        
+                        <div id="authForm" class="space-y-4">
+                            <input type="text" id="username" placeholder="Username" 
+                                class="w-full px-4 py-3 border rounded-full focus:outline-none focus:ring-2 focus:ring-yellow-500" required>
+                            <input type="password" id="password" placeholder="Password" 
+                                class="w-full px-4 py-3 border rounded-full focus:outline-none focus:ring-2 focus:ring-yellow-500" required>
+                            
+                            <div id="authError" class="text-red-500 text-sm text-center hidden"></div>
+                            
+                            <button onclick="handleLogin()" 
+                                class="w-full bg-yellow-500 text-white py-3 px-6 rounded-full font-semibold hover:bg-yellow-600 transition">
+                                Log In
+                            </button>
+                            <button onclick="handleSignUp()" 
+                                class="w-full bg-gray-200 text-gray-700 py-3 px-6 rounded-full font-semibold hover:bg-gray-300 transition">
+                                Sign Up
+                            </button>
                         </div>
-                      </div>
-                    );
-                  })}
+                        
+                        <div class="mt-6 p-4 bg-yellow-50 rounded-xl">
+                            <p class="text-xs text-gray-600">
+                                <strong>✅ Real-time Chat</strong><br/>
+                                • Firebase & Cloudinary<br/>
+                                • Message real people instantly
+                            </p>
+                        </div>
+                    </div>
                 </div>
-              )}
-            </div>
-          </div>
-        )}
+            `;
+        }
 
-        {view === 'chat' && selectedFriend && (
-          <div className="flex flex-col h-full">
-            {/* Chat Header */}
-            <div className="bg-white p-4 shadow flex items-center gap-3">
-              <button onClick={() => setView('home')} className="text-gray-600 hover:text-gray-800">
-                <X size={24} />
-              </button>
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center">
-                <User className="text-white" size={18} />
-              </div>
-              <div>
-                <p className="font-semibold">@{selectedFriend.friendUsername}</p>
-                <p className="text-xs text-gray-500">🔥 {selectedFriend.streak || 0} day streak</p>
-              </div>
-            </div>
+        function renderHome() {
+            const friendsHtml = friends.length === 0 
+                ? '<div class="text-center py-8 text-gray-500"><p>No friends yet. Add some friends to start chatting!</p></div>'
+                : friends.map(friend => `
+                    <div onclick="openChat('${friend.id}')" 
+                        class="bg-white p-4 rounded-xl shadow hover:shadow-md transition cursor-pointer">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-3">
+                                <div class="w-12 h-12 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white text-2xl">
+                                    ${icons.user}
+                                </div>
+                                <div>
+                                    <p class="font-semibold">@${friend.friendUsername}</p>
+                                    <p class="text-sm text-gray-500">Tap to chat</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <span class="text-2xl">${icons.fire}</span>
+                                <span class="font-bold text-yellow-500">${friend.streak || 0}</span>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
 
-            {/* Messages */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-3">
-              {messages
+            return `
+                <div class="flex flex-col h-screen bg-gray-100">
+                    <div class="bg-yellow-500 text-white p-4 shadow-lg">
+                        <div class="flex items-center justify-between max-w-6xl mx-auto">
+                            <h1 class="text-2xl font-bold">Godswillscorechat🗨</h1>
+                            <div class="flex items-center gap-4">
+                                <span class="text-sm font-semibold">@${currentUser.username}</span>
+                                <button onclick="handleLogout()" 
+                                    class="p-2 bg-yellow-600 rounded-full hover:bg-yellow-700 transition">
+                                    ${icons.logout}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flex-1 overflow-y-auto p-4 max-w-6xl mx-auto w-full">
+                        <div class="mb-6">
+                            <h2 class="text-xl font-bold mb-3">Stories</h2>
+                            <div class="flex gap-4 overflow-x-auto pb-2">
+                                <button onclick="captureImage()" class="flex flex-col items-center flex-shrink-0">
+                                    <div class="w-16 h-16 rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600 flex items-center justify-center border-4 border-white shadow-lg text-white text-2xl">
+                                        ${icons.plus}
+                                    </div>
+                                    <span class="text-xs mt-1">Add Story</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div>
+                            <div class="flex items-center justify-between mb-3">
+                                <h2 class="text-xl font-bold">Friends</h2>
+                                <button onclick="showAddFriend()" 
+                                    class="bg-yellow-500 text-white px-4 py-2 rounded-full text-sm hover:bg-yellow-600">
+                                    ${icons.plus} Add Friend
+                                </button>
+                            </div>
+                            ${friendsHtml}
+                        </div>
+                    </div>
+
+                    <div class="bg-white border-t p-2">
+                        <div class="flex justify-around max-w-6xl mx-auto">
+                            <button onclick="goHome()" class="p-3 rounded-full bg-yellow-100">
+                                <span class="text-2xl">${icons.home}</span>
+                            </button>
+                            <button onclick="captureImage()" class="p-3 rounded-full">
+                                <span class="text-2xl">${icons.camera}</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <input type="file" id="imageInput" accept="image/*" style="display:none;" onchange="handleImageSelect(event)">
+            `;
+        }
+
+        function renderChat() {
+            if (!selectedFriend) return '';
+
+            const chatMessages = messages
                 .filter(m => 
-                  (m.from === user.username && m.to === selectedFriend.friendUsername) ||
-                  (m.to === user.username && m.from === selectedFriend.friendUsername)
+                    (m.from === currentUser.username && m.to === selectedFriend.friendUsername) ||
+                    (m.to === currentUser.username && m.from === selectedFriend.friendUsername)
                 )
-                .sort((a, b) => {
-                  const timeA = a.timestamp?.toMillis() || 0;
-                  const timeB = b.timestamp?.toMillis() || 0;
-                  return timeA - timeB;
-                })
-                .map(msg => (
-                  <div
-                    key={msg.id}
-                    className={`flex ${msg.from === user.username ? 'justify-end' : 'justify-start'}`}
-                  >
-                    {msg.imageUrl ? (
-                      <div className="max-w-xs">
-                        <img
-                          src={msg.imageUrl}
-                          alt="Snap"
-                          className="rounded-2xl shadow-lg"
-                        />
-                        <p className="text-xs text-gray-500 mt-1">
-                          {msg.timestamp && timeAgo(msg.timestamp)}
-                        </p>
-                      </div>
-                    ) : (
-                      <div
-                        className={`max-w-xs p-3 rounded-2xl ${
-                          msg.from === user.username
-                            ? 'bg-yellow-500 text-white'
-                            : 'bg-gray-200 text-gray-800'
-                        }`}
-                      >
-                        <p>{msg.text}</p>
-                        <p className="text-xs opacity-70 mt-1">
-                          {msg.timestamp && timeAgo(msg.timestamp)}
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                ))}
-            </div>
+                .sort((a, b) => (a.timestamp?.seconds || 0) - (b.timestamp?.seconds || 0));
 
-            {/* Input Area */}
-            <div className="bg-white p-4 border-t">
-              {uploading && (
-                <div className="mb-3 text-center">
-                  <Loader className="animate-spin inline-block text-yellow-500" size={24} />
-                  <p className="text-sm text-gray-600 mt-2">Uploading to Cloudinary...</p>
-                </div>
-              )}
-              
-              {capturedImage ? (
-                <div className="mb-3">
-                  <img src={capturedImage} alt="Captured" className="max-h-40 rounded-xl mx-auto" />
-                  <div className="flex gap-2 mt-2">
-                    <button
-                      onClick={sendSnap}
-                      disabled={uploading}
-                      className="flex-1 bg-yellow-500 text-white py-2 rounded-full font-semibold hover:bg-yellow-600 disabled:opacity-50"
-                    >
-                      {uploading ? 'Uploading...' : 'Send Snap 📸'}
-                    </button>
-                    <button
-                      onClick={() => setCapturedImage(null)}
-                      className="px-4 bg-gray-300 rounded-full hover:bg-gray-400"
-                    >
-                      <X size={20} />
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <div className="flex gap-2">
-                  <input
-                    type="file"
-                    ref={fileInputRef}
-                    onChange={handleFileSelect}
-                    accept="image/*"
-                    className="hidden"
-                  />
-                  <button
-                    onClick={startCamera}
-                    className="p-3 bg-yellow-500 text-white rounded-full hover:bg-yellow-600"
-                  >
-                    <Camera size={20} />
-                  </button>
-                  <button
-                    onClick={() => fileInputRef.current?.click()}
-                    className="p-3 bg-blue-500 text-white rounded-full hover:bg-blue-600"
-                  >
-                    <Plus size={20} />
-                  </button>
-                  <input
-                    type="text"
-                    value={messageText}
-                    onChange={(e) => setMessageText(e.target.value)}
-                    onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
-                    placeholder="Send a message..."
-                    className="flex-1 px-4 py-2 border rounded-full focus:outline-none focus:ring-2 focus:ring-yellow-500"
-                  />
-                  <button
-                    onClick={sendMessage}
-                    className="p-3 bg-yellow-500 text-white rounded-full hover:bg-yellow-600"
-                  >
-                    <Send size={20} />
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Add Friend Modal */}
-      {showAddFriend && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-bold">Add Friend</h2>
-              <button onClick={() => setShowAddFriend(false)} className="text-gray-500 hover:text-gray-700">
-                <X size={24} />
-              </button>
-            </div>
-            
-            <div className="space-y-2 max-h-96 overflow-y-auto">
-              {allUsers.length === 0 ? (
-                <p className="text-center text-gray-500 py-4">No other users yet</p>
-              ) : (
-                allUsers
-                  .filter(u => !friends.some(f => f.friendUsername === u.username))
-                  .map(u => (
-                    <div key={u.uid} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-400 to-pink-500 flex items-center justify-center">
-                          <User className="text-white" size={18} />
+            const messagesHtml = chatMessages.map(msg => {
+                const isFromMe = msg.from === currentUser.username;
+                if (msg.imageUrl) {
+                    return `
+                        <div class="flex ${isFromMe ? 'justify-end' : 'justify-start'}">
+                            <div class="max-w-xs">
+                                <img src="${msg.imageUrl}" alt="Snap" class="rounded-2xl shadow-lg">
+                            </div>
                         </div>
-                        <span className="font-semibold">@{u.username}</span>
-                      </div>
-                      <button
-                        onClick={() => addFriend(u.username)}
-                        className="bg-yellow-500 text-white px-4 py-2 rounded-full text-sm hover:bg-yellow-600"
-                      >
-                        Add
-                      </button>
+                    `;
+                } else {
+                    return `
+                        <div class="flex ${isFromMe ? 'justify-end' : 'justify-start'}">
+                            <div class="max-w-xs p-3 rounded-2xl ${isFromMe ? 'bg-yellow-500 text-white' : 'bg-gray-200 text-gray-800'}">
+                                <p>${msg.text}</p>
+                            </div>
+                        </div>
+                    `;
+                }
+            }).join('');
+
+            return `
+                <div class="flex flex-col h-screen bg-gray-100">
+                    <div class="bg-white p-4 shadow flex items-center gap-3">
+                        <button onclick="goHome()" class="text-gray-600 hover:text-gray-800 text-2xl">
+                            ${icons.close}
+                        </button>
+                        <div class="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white text-xl">
+                            ${icons.user}
+                        </div>
+                        <div>
+                            <p class="font-semibold">@${selectedFriend.friendUsername}</p>
+                            <p class="text-xs text-gray-500">${icons.fire} ${selectedFriend.streak || 0} day streak</p>
+                        </div>
                     </div>
-                  ))
-              )}
-            </div>
-          </div>
-        </div>
-      )}
 
-      {/* Camera Modal */}
-      {showCamera && (
-        <div className="fixed inset-0 bg-black z-50 flex flex-col">
-          <div className="flex-1 relative">
-            <video
-              ref={videoRef}
-              autoPlay
-              playsInline
-              className="w-full h-full object-cover"
-            />
-            <canvas ref={canvasRef} className="hidden" />
-          </div>
-          <div className="p-6 flex justify-center gap-4">
-            <button
-              onClick={stopCamera}
-              className="px-6 py-3 bg-gray-600 text-white rounded-full font-semibold hover:bg-gray-700"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={capturePhoto}
-              className="px-8 py-3 bg-yellow-500 text-white rounded-full font-semibold hover:bg-yellow-600"
-            >
-              Capture 📸
-            </button>
-          </div>
-        </div>
-      )}
+                    <div class="flex-1 overflow-y-auto p-4 space-y-3">
+                        ${messagesHtml || '<p class="text-center text-gray-500">No messages yet. Send a snap!</p>'}
+                    </div>
 
-      {/* Bottom Navigation */}
-      <div className="bg-white border-t p-2">
-        <div className="flex justify-around max-w-6xl mx-auto">
-          <button
-            onClick={() => setView('home')}
-            className={`p-3 rounded-full ${view === 'home' ? 'bg-yellow-100' : ''}`}
-          >
-            <Home className={view === 'home' ? 'text-yellow-500' : 'text-gray-600'} size={24} />
-          </button>
-          <button
-            onClick={startCamera}
-            className="p-3 rounded-full"
-          >
-            <Camera className="text-gray-600" size={24} />
-          </button>
-          <button
+                    <div class="bg-white p-4 border-t">
+                        <div class="flex gap-2">
+                            <button onclick="captureImage()" 
+                                class="p-3 bg-yellow-500 text-white rounded-full hover:bg-yellow-600 text-xl">
+                                ${icons.camera}
+                            </button>
+                            <input type="text" id="messageInput" placeholder="Send a message..." 
+                                class="flex-1 px-4 py-2 border rounded-full focus:outline-none focus:ring-2 focus:ring-yellow-500"
+                                onkeypress="if(event.key==='Enter') sendMessage()">
+                            <button onclick="sendMessage()" 
+                                class="p-3 bg-yellow-500 text-white rounded-full hover:bg-yellow-600 text-xl">
+                                ${icons.send}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <input type="file" id="imageInput" accept="image/*" style="display:none;" onchange="handleImageSelect(event)">
+            `;
+        }
+
+        // Event Handlers
+        async function handleSignUp() {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const errorDiv = document.getElementById('authError');
+
+            if (!username || !password) {
+                errorDiv.textContent = 'Please enter username and password';
+                errorDiv.classList.remove('hidden');
+                return;
+            }
+
+            try {
+                const usernameQuery = await db.collection('users').where('username', '==', username).get();
+                if (!usernameQuery.empty) {
+                    errorDiv.textContent = 'Username already taken';
+                    errorDiv.classList.remove('hidden');
+                    return;
+                }
+
+                const email = `${username}@godswillscorechat.app`;
+                const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+                
+                await db.collection('users').doc(userCredential.user.uid).set({
+                    uid: userCredential.user.uid,
+                    username: username,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+            } catch (error) {
+                errorDiv.textContent = error.message;
+                errorDiv.classList.remove('hidden');
+            }
+        }
+
+        async function handleLogin() {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const errorDiv = document.getElementById('authError');
+
+            if (!username || !password) {
+                errorDiv.textContent = 'Please enter username and password';
+                errorDiv.classList.remove('hidden');
+                return;
+            }
+
+            try {
+                const usernameQuery = await db.collection('users').where('username', '==', username).get();
+                if (usernameQuery.empty) {
+                    errorDiv.textContent = 'Username not found';
+                    errorDiv.classList.remove('hidden');
+                    return;
+                }
+
+                const email = `${username}@godswillscorechat.app`;
+                await auth.signInWithEmailAndPassword(email, password);
+            } catch (error) {
+                errorDiv.textContent = 'Incorrect password';
+                errorDiv.classList.remove('hidden');
+            }
+        }
+
+        async function handleLogout() {
+            await auth.signOut();
+        }
+
+        function goHome() {
+            currentView = 'home';
+            selectedFriend = null;
+            render();
+        }
+
+        function openChat(friendId) {
+            selectedFriend = friends.find(f => f.id === friendId);
+            currentView = 'chat';
+            render();
+        }
+
+        function captureImage() {
+            document.getElementById('imageInput').click();
+        }
+
+        async function handleImageSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                await uploadToCloudinary(e.target.result);
+            };
+            reader.readAsDataURL(file);
+        }
+
+        async function uploadToCloudinary(imageData) {
+            if (!selectedFriend) {
+                alert('Please select a friend first');
+                return;
+            }
+
+            try {
+                const blob = await fetch(imageData).then(r => r.blob());
+                const formData = new FormData();
+                formData.append('file', blob);
+                formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+                formData.append('folder', 'godswillscorechat');
+
+                const response = await fetch(CLOUDINARY_UPLOAD_URL, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                await db.collection('messages').add({
+                    from: currentUser.username,
+                    to: selectedFriend.friendUsername,
+                    imageUrl: data.secure_url,
+                    publicId: data.public_id,
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                    type: 'snap'
+                });
+
+                alert('Snap sent! 🎉');
+            } catch (error) {
+                console.error('Upload error:', error);
+                alert('Failed to upload image');
+            }
+        }
+
+        async function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const text = input.value.trim();
+            
+            if (!text || !selectedFriend) return;
+
+            try {
+                await db.collection('messages').add({
+                    from: currentUser.username,
+                    to: selectedFriend.friendUsername,
+                    text: text,
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                    type: 'text'
+                });
+
+                input.value = '';
+            } catch (error) {
+                console.error('Send error:', error);
+                alert('Failed to send message');
+            }
+        }
+
+        async function showAddFriend() {
+            const username = prompt('Enter username to add:');
+            if (!username) return;
+
+            try {
+                const userQuery = await db.collection('users').where('username', '==', username).get();
+                if (userQuery.empty) {
+                    alert('User not found');
+                    return;
+                }
+
+                await db.collection('friends').add({
+                    user: currentUser.username,
+                    friendUsername: username,
+                    streak: 0,
+                    addedAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+
+                alert('Friend added!');
+            } catch (error) {
+                console.error('Add friend error:', error);
+                alert('Failed to add friend');
+            }
+        }
+
+        function attachEventListeners() {
+            // Event listeners are inline in HTML
+        }
+
+        // Auth State Listener
+        auth.onAuthStateChanged(async (firebaseUser) => {
+            if (firebaseUser) {
+                const userDoc = await db.collection('users').where('uid', '==', firebaseUser.uid).get();
+                if (!userDoc.empty) {
+                    currentUser = userDoc.docs[0].data();
+                    currentView = 'home';
+                    loadFriends();
+                    loadMessages();
+                    render();
+                }
+            } else {
+                currentUser = null;
+                currentView = 'auth';
+                render();
+            }
+        });
+
+        // Load Friends
+        function loadFriends() {
+            db.collection('friends')
+                .where('user', '==', currentUser.username)
+                .onSnapshot(snapshot => {
+                    friends = snapshot.docs.map(doc => ({
+                        id: doc.id,
+                        ...doc.data()
+                    }));
+                    if (currentView === 'home') render();
+                });
+        }
+
+        // Load Messages
+        function loadMessages() {
+            db.collection('messages')
+                .orderBy('timestamp', 'desc')
+                .onSnapshot(snapshot => {
+                    messages = snapshot.docs.map(doc => ({
+                        id: doc.id,
+                        ...doc.data()
+                    }));
+                    if (currentView === 'chat') render();
+                });
+        }
+
+        // Initial render
+        render();
+    </script>
+</body>
+</html>
