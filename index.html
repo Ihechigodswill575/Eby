@@ -8,7 +8,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
-    <!-- JITSI MEET SCRIPT - NO SIGNUP NEEDED! -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
     <script src='https://meet.jit.si/external_api.js'></script>
 </head>
 <body class="bg-gray-100">
@@ -28,6 +28,7 @@
         firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
         const db = firebase.firestore();
+        const storage = firebase.storage();
 
         const CLOUDINARY_CLOUD_NAME = 'dzxckgbzp';
         const CLOUDINARY_UPLOAD_PRESET = 'godswillscorechat';
@@ -46,7 +47,14 @@
         let channels = [];
         let allUsers = [];
         let editingMessageId = null;
-        let jitsiApi = null; // For video calls
+        let jitsiApi = null;
+        
+        // Voice recording variables
+        let mediaRecorder = null;
+        let audioChunks = [];
+        let isRecording = false;
+        let recordingStartTime = 0;
+        let recordingTimer = null;
 
         const icons = {
             camera: '📷',
@@ -65,7 +73,9 @@
             lock: '🔒',
             globe: '🌍',
             channel: '📢',
-            videoCall: '📹' // NEW ICON
+            videoCall: '📹',
+            audioCall: '📞',
+            microphone: '🎤'
         };
 
         function render() {
@@ -125,7 +135,7 @@
                                 <strong>✅ Real-time Chat & Stories</strong><br/>
                                 • Private & Public Stories<br/>
                                 • Groups & Channels<br/>
-                                • Video Calls & More!
+                                • Video/Audio Calls & Voice Notes!
                             </p>
                         </div>
                         
@@ -157,9 +167,12 @@
                     ).sort((a, b) => (b.timestamp?.seconds || 0) - (a.timestamp?.seconds || 0));
                     
                     const lastMessage = friendMessages[0];
-                    const lastMessageText = lastMessage 
-                        ? (lastMessage.imageUrl ? '📷 Photo' : lastMessage.text)
-                        : 'Tap to chat';
+                    let lastMessageText = 'Tap to chat';
+                    if (lastMessage) {
+                        if (lastMessage.imageUrl) lastMessageText = '📷 Photo';
+                        else if (lastMessage.voiceUrl) lastMessageText = '🎤 Voice message';
+                        else lastMessageText = lastMessage.text;
+                    }
                     
                     return `
                     <div onclick="openChat('${friend.id}')" 
@@ -190,9 +203,12 @@
                     .sort((a, b) => (b.timestamp?.seconds || 0) - (a.timestamp?.seconds || 0));
                 
                 const lastMessage = groupMessages[0];
-                const lastMessageText = lastMessage 
-                    ? (lastMessage.imageUrl ? '📷 Photo' : `${lastMessage.from}: ${lastMessage.text}`)
-                    : 'No messages yet';
+                let lastMessageText = 'No messages yet';
+                if (lastMessage) {
+                    if (lastMessage.imageUrl) lastMessageText = '📷 Photo';
+                    else if (lastMessage.voiceUrl) lastMessageText = `${lastMessage.from}: 🎤 Voice message`;
+                    else lastMessageText = `${lastMessage.from}: ${lastMessage.text}`;
+                }
                 
                 return `
                 <div onclick="openGroupChat('${group.id}')" 
@@ -320,7 +336,34 @@
                 const isFromMe = msg.from === currentUser.username;
                 const time = formatTime(msg.timestamp);
                 
-                if (msg.imageUrl) {
+                if (msg.voiceUrl) {
+                    return `
+                        <div class="flex ${isFromMe ? 'justify-end' : 'justify-start'} mb-1 group">
+                            <div class="max-w-[70%] px-3 py-2 rounded-lg shadow-sm ${isFromMe ? 'bg-green-100 rounded-br-none' : 'bg-white rounded-bl-none'} relative">
+                                <div class="flex items-center gap-2">
+                                    <button onclick="playVoiceNote('${msg.voiceUrl}')" class="text-2xl">
+                                        ▶️
+                                    </button>
+                                    <div class="flex-1">
+                                        <div class="h-1 bg-gray-300 rounded-full">
+                                            <div class="h-full bg-green-500 rounded-full" style="width: 0%"></div>
+                                        </div>
+                                        <p class="text-xs text-gray-500 mt-1">${msg.duration || '0:00'}</p>
+                                    </div>
+                                </div>
+                                <div class="flex items-center justify-end gap-1 mt-1">
+                                    <span class="text-xs text-gray-500">${time}</span>
+                                    ${isFromMe ? `<span class="text-xs text-blue-500">${icons.doubleCheck}</span>` : ''}
+                                </div>
+                                ${isFromMe ? `
+                                <button onclick="deleteMessage('${msg.id}')" class="absolute -right-12 top-0 bg-red-500 text-white p-1 rounded text-xs opacity-0 group-hover:opacity-100 transition">
+                                    ${icons.delete}
+                                </button>
+                                ` : ''}
+                            </div>
+                        </div>
+                    `;
+                } else if (msg.imageUrl) {
                     return `
                         <div class="flex ${isFromMe ? 'justify-end' : 'justify-start'} mb-1 group">
                             <div class="max-w-[70%] relative">
@@ -374,9 +417,11 @@
                             <p class="font-semibold">@${selectedFriend.friendUsername}</p>
                             <p class="text-xs text-green-100">Tap here for info</p>
                         </div>
-                        <!-- VIDEO CALL BUTTON -->
-                        <button onclick="startVideoCall()" class="bg-green-700 hover:bg-green-800 px-4 py-2 rounded-full text-sm font-semibold transition">
-                            ${icons.videoCall} Call
+                        <button onclick="startAudioCall()" class="bg-green-700 hover:bg-green-800 px-3 py-2 rounded-full text-sm font-semibold transition">
+                            ${icons.audioCall}
+                        </button>
+                        <button onclick="startVideoCall()" class="bg-green-700 hover:bg-green-800 px-3 py-2 rounded-full text-sm font-semibold transition">
+                            ${icons.videoCall}
                         </button>
                     </div>
 
@@ -391,10 +436,23 @@
                             <button onclick="cancelEditMessage()" class="text-blue-800 font-bold">Cancel</button>
                         </div>
                         ` : ''}
+                        <div id="recordingIndicator" class="hidden bg-red-100 p-2 rounded-lg mb-2 flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                                <span class="text-red-600 text-xl animate-pulse">🔴</span>
+                                <span class="text-sm text-red-800">Recording... <span id="recordingTime">0:00</span></span>
+                            </div>
+                            <button onclick="stopRecording()" class="bg-red-500 text-white px-3 py-1 rounded-full text-sm font-semibold">
+                                Stop
+                            </button>
+                        </div>
                         <div class="flex gap-2 items-center">
                             <button onclick="captureImage()" 
                                 class="p-2 text-gray-600 hover:text-gray-800 text-2xl">
                                 ${icons.camera}
+                            </button>
+                            <button onclick="toggleVoiceRecording()" id="voiceBtn"
+                                class="p-2 text-gray-600 hover:text-gray-800 text-2xl">
+                                ${icons.microphone}
                             </button>
                             <input type="text" id="messageInput" placeholder="${editingMessageId ? 'Edit message...' : 'Message'}" 
                                 class="flex-1 px-4 py-2 rounded-full bg-white border focus:outline-none focus:ring-2 focus:ring-green-500"
@@ -409,9 +467,8 @@
 
                 <input type="file" id="imageInput" accept="image/*" style="display:none;" onchange="handleImageSelect(event)">
                 
-                <!-- VIDEO CALL CONTAINER -->
                 <div id="jitsi-container" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 9999; background: black;">
-                    <button onclick="endVideoCall()" style="position: absolute; top: 20px; right: 20px; z-index: 10000; background: #ef4444; color: white; padding: 10px 20px; border-radius: 25px; font-weight: bold; cursor: pointer; border: none; box-shadow: 0 4px 6px rgba(0,0,0,0.3);">
+                    <button onclick="endCall()" style="position: absolute; top: 20px; right: 20px; z-index: 10000; background: #ef4444; color: white; padding: 10px 20px; border-radius: 25px; font-weight: bold; cursor: pointer; border: none; box-shadow: 0 4px 6px rgba(0,0,0,0.3);">
                         ❌ End Call
                     </button>
                     <div id="jitsi-meet" style="width: 100%; height: 100%;"></div>
@@ -430,511 +487,773 @@
                 const isFromMe = msg.from === currentUser.username;
                 const time = formatTime(msg.timestamp);
                 
-                if (msg.imageUrl) {
+                if (msg.voiceUrl) {
                     return `
                         <div class="flex ${isFromMe ? 'justify-end' : 'justify-start'} mb-1 group">
-                            <div class="max-w-[70%] relative">
+                            <div class="max-w-[70%] px-3 py-2 rounded-lg shadow-sm ${isFromMe ? 'bg-green-100 rounded-br-none' : 'bg-white rounded-bl-none'} relative">
                                 ${!isFromMe ? `<p class="text-xs font-semibold mb-1" style="color: ${getColorForUser(msg.from)}">~${msg.from}</p>` : ''}
-                                <img src="${msg.imageUrl}" alt="Photo" class="rounded-lg shadow w-full">
-                                <span class="absolute bottom-1 right-2 text-xs text-white bg-black bg-opacity-50 px-2 py-0.5 rounded">
-                                    ${time} ${isFromMe ? icons.doubleCheck : ''}
-                                </span>
+                                <div class="flex items-center gap-2">
+                                    <button onclick="playVoiceNote('${msg.voiceUrl}')" class="text-2xl">
+                                        ▶️
+                                    </button>
+                                    <div class="flex-1">
+                                        <div class="h-1 bg-gray-300 rounded-full">
+                                            <div class="h-full bg-green-500 rounded-full" style="width: 0%"></div>
+                                        </div>
+                                        <p class="text-xs text-gray-500 mt-1">${msg.duration || '0:00'}</p>
+                                    </div>
+                                </div>
+                                <div class="flex items-center justify-end gap-1 mt-1">
+                                    <span class="text-xs text-gray-500">${time}</span>
+                                    ${isFromMe ? `<span class="text-xs text-blue-500">${icons.doubleCheck}</span>` : ''}
+                                </div>
                                 ${isFromMe ? `
-                                <button onclick="deleteMessage('${msg.id}')" class="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition">
+                                <button onclick="deleteMessage('${msg.id}')" class="absolute -right-12 top-0 bg-red-500 text-white p-1 rounded text-xs opacity-0 group-hover:opacity-100 transition">
                                     ${icons.delete}
                                 </button>
                                 ` : ''}
                             </div>
                         </div>
                     `;
-                } else {
+                } else if (msg.imageUrl) {
                     return `
                         <div class="flex ${isFromMe ? 'justify-end' : 'justify-start'} mb-1 group">
-                            <div class="max-w-[70%] px-3 py-2 rounded-lg shadow-sm ${isFromMe ? 'bg-green-100 rounded-br-none' : 'bg-white rounded-bl-none'} relative">
-                                ${!isFromMe ? `<p class="text-xs font-semibold mb-1" style="color: ${getColorForUser(msg.from)}">~${msg.from}</p>` : ''}
-                                <p class="text-sm break-words">${msg.text}</p>
-                                <div class="flex items-center justify-end gap-1 mt-1">
-                                    <span class="text-xs text-gray-500">${time}</span>
-                                    ${isFromMe ? `<span class="text-xs text-blue-500">${icons.doubleCheck}</span>` : ''}
-                                </div>
-                                ${isFromMe ? `
-                                <div class="absolute -right-16 top-0 opacity-0 group-hover:opacity-100 transition flex gap-1">
-                                    <button onclick="startEditMessage('${msg.id}', \`${msg.text.replace(/`/g, '\\`').replace(/\\/g, '\\\\')}\`)" class="bg-blue-500 text-white p-1 rounded text-xs">
-                                        ${icons.edit}
-                                    </button>
-                                    <button onclick="deleteMessage('${msg.id}')" class="bg-red-500 text-white p-1 rounded text-xs">
-                                        ${icons.delete}
-                                    </button>
-                                </div>
-                                ` : ''}
-                            </div>
-                        </div>
-                    `;
-                }
-            }).join('');
+                            <div class="max-w-[70%] relative">
+                                ${!
+                                  isFromMe ? <p class="text-xs font-semibold mb-1" style="color: ${getColorForUser(msg.from)}">~${msg.from}</p> : ''}
 
-            return `
-                <div class="flex flex-col h-screen bg-gray-50">
-                    <div class="bg-green-600 text-white p-3 shadow flex items-center gap-3">
-                        <button onclick="goHome()" class="text-white text-2xl">
-                            ←
-                        </button>
-                        <div class="w-10 h-10 rounded-full bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center text-white text-xl">
-                            👥
-                        </div>
-                        <div class="flex-1" onclick="showGroupInfo()">
-                            <p class="font-semibold">${selectedGroup.name}</p>
-                            ${selectedGroup.bio ? `<p class="text-xs text-green-100 truncate">${selectedGroup.bio}</p>` : ''}
-                            <p class="text-xs text-green-100">${selectedGroup.members.length} members</p>
-                        </div>
-                        <!-- GROUP VIDEO CALL BUTTON -->
-                        <button onclick="startGroupVideoCall()" class="bg-green-700 hover:bg-green-800 px-4 py-2 rounded-full text-sm font-semibold transition">
-                            ${icons.videoCall} Call
-                        </button>
-                    </div>
 
-                    <div id="chatMessages" class="flex-1 overflow-y-auto p-3" style="background-image: url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22100%22 height=%22100%22><rect fill=%22%23e5ddd5%22 width=%22100%22 height=%22100%22/></svg>');">
-                        ${messagesHtml || '<div class="flex-1 flex items-center justify-center"><p class="text-center text-gray-500 bg-white px-4 py-2 rounded-lg shadow">No messages yet. Start the conversation!</p></div>'}
-                    </div>
+${time} ${isFromMe ? icons.doubleCheck : ''}
 
-                    <div class="bg-gray-100 p-2 border-t">
-                        ${editingMessageId ? `
-                        <div class="bg-blue-100 p-2 rounded-lg mb-2 flex items-center justify-between">
-                            <span class="text-sm text-blue-800">Editing message...</span>
-                            <button onclick="cancelEditMessage()" class="text-blue-800 font-bold">Cancel</button>
-                        </div>
-                        ` : ''}
-                        <div class="flex gap-2 items-center">
-                            <button onclick="captureImage()" 
-                                class="p-2 text-gray-600 hover:text-gray-800 text-2xl">
-                                ${icons.camera}
-                            </button>
-                            <input type="text" id="messageInput" placeholder="${editingMessageId ? 'Edit message...' : 'Message'}" 
-                                class="
-                                flex-1 px-4 py-2 rounded-full bg-white border focus:outline-none focus:ring-2 focus:ring-green-500"
-                                onkeypress="if(event.key==='Enter') ${editingMessageId ? 'saveEditMessage()' : 'sendGroupMessage()'}">
-                            <button onclick="${editingMessageId ? 'saveEditMessage()' : 'sendGroupMessage()'}" 
-                                class="p-2 bg-green-600 text-white rounded-full hover:bg-green-700">
-                                ${icons.send}
-                            </button>
-                        </div>
-                    </div>
-                </div>
+{isFromMe ?  : ''}{msg.text}{time}
+${isFromMe ? <span class="text-xs text-blue-500">${icons.doubleCheck}</span> : ''}
 
-                <input type="file" id="imageInput" accept="image/*" style="display:none;" onchange="handleImageSelect(event)">
-                
-                <!-- GROUP VIDEO CALL CONTAINER -->
-                <div id="jitsi-container" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 9999; background: black;">
-                    <button onclick="endVideoCall()" style="position: absolute; top: 20px; right: 20px; z-index: 10000; background: #ef4444; color: white; padding: 10px 20px; border-radius: 25px; font-weight: bold; cursor: pointer; border: none; box-shadow: 0 4px 6px rgba(0,0,0,0.3);">
-                        ❌ End Call
+{isFromMe ? {msg.text.replace(//g, '\\').replace(/\/g, '\\')}`)" class="bg-blue-500 text-white p-1 rounded text-xs">
+${icons.edit}
+
+
+${icons.delete}
+
+
+: ''} </div> </div>;
+}
+}).join('');
+{isFromMe ? 
+return `
+            <div class="flex flex-col h-screen bg-gray-50">
+                <div class="bg-green-600 text-white p-3 shadow flex items-center gap-3">
+                    <button onclick="goHome()" class="text-white text-2xl">
+                        ←
                     </button>
-                    <div id="jitsi-meet" style="width: 100%; height: 100%;"></div>
+                    <div class="w-10 h-10 rounded-full bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center text-white text-xl">
+                        👥
+                    </div>
+                    <div class="flex-1" onclick="showGroupInfo()">
+                        <p class="font-semibold">${selectedGroup.name}</p>
+                        ${selectedGroup.bio ? `<p class="text-xs text-green-100 truncate">${selectedGroup.bio}</p>` : ''}
+                        <p class="text-xs text-green-100">${selectedGroup.members.length} members</p>
+                    </div>
+                    <button onclick="startGroupAudioCall()" class="bg-green-700 hover:bg-green-800 px-3 py-2 rounded-full text-sm font-semibold transition">
+                        ${icons.audioCall}
+                    </button>
+                    <button onclick="startGroupVideoCall()" class="bg-green-700 hover:bg-green-800 px-3 py-2 rounded-full text-sm font-semibold transition">
+                        ${icons.videoCall}
+                    </button>
                 </div>
-            `;
-        }
 
-        function renderFriendRequests() {
-            const pendingRequests = friendRequests.filter(r => r.to === currentUser.username && r.status === 'pending');
-            
-            const requestsHtml = pendingRequests.length === 0
-                ? '<div class="text-center py-8 text-gray-500"><p>No pending friend requests</p></div>'
-                : pendingRequests.map(request => `
-                    <div class="bg-white p-4 border-b">
-                        <div class="flex items-center justify-between">
-                            <div class="flex items-center gap-3">
-                                <div class="w-12 h-12 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white text-2xl">
-                                    ${icons.user}
-                                </div>
-                                <div>
-                                    <p class="font-semibold">@${request.from}</p>
-                                    <p class="text-sm text-gray-500">wants to connect</p>
-                                </div>
-                            </div>
-                            <div class="flex gap-2">
-                                <button onclick="acceptFriendRequest('${request.id}', '${request.from}')" 
-                                    class="bg-green-500 text-white px-4 py-2 rounded-full text-sm hover:bg-green-600">
-                                    Accept
-                                </button>
-                                <button onclick="rejectFriendRequest('${request.id}')" 
-                                    class="bg-gray-200 text-gray-700 px-4 py-2 rounded-full text-sm hover:bg-gray-300">
-                                    Decline
-                                </button>
-                            </div>
+                <div id="chatMessages" class="flex-1 overflow-y-auto p-3" style="background-image: url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22100%22 height=%22100%22><rect fill=%22%23e5ddd5%22 width=%22100%22 height=%22100%22/></svg>');">
+                    ${messagesHtml || '<div class="flex-1 flex items-center justify-center"><p class="text-center text-gray-500 bg-white px-4 py-2 rounded-lg shadow">No messages yet. Start the conversation!</p></div>'}
+                </div>
+
+                <div class="bg-gray-100 p-2 border-t">
+                    ${editingMessageId ? `
+                    <div class="bg-blue-100 p-2 rounded-lg mb-2 flex items-center justify-between">
+                        <span class="text-sm text-blue-800">Editing message...</span>
+                        <button onclick="cancelEditMessage()" class="text-blue-800 font-bold">Cancel</button>
+                    </div>
+                    ` : ''}
+                    <div id="recordingIndicator" class="hidden bg-red-100 p-2 rounded-lg mb-2 flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <span class="text-red-600 text-xl animate-pulse">🔴</span>
+                            <span class="text-sm text-red-800">Recording... <span id="recordingTime">0:00</span></span>
                         </div>
-                    </div>
-                `).join('');
-
-            return `
-                <div class="flex flex-col h-screen bg-gray-50">
-                    <div class="bg-green-600 text-white p-4 shadow flex items-center gap-3">
-                        <button onclick="goHome()" class="text-white text-2xl">
-                            ←
+                        <button onclick="stopRecording()" class="bg-red-500 text-white px-3 py-1 rounded-full text-sm font-semibold">
+                            Stop
                         </button>
-                        <h2 class="text-xl font-semibold">Friend Requests</h2>
                     </div>
-
-                    <div class="flex-1 overflow-y-auto">
-                        ${requestsHtml}
+                    <div class="flex gap-2 items-center">
+                        <button onclick="captureImage()" 
+                            class="p-2 text-gray-600 hover:text-gray-800 text-2xl">
+                            ${icons.camera}
+                        </button>
+                        <button onclick="toggleVoiceRecording()" id="voiceBtn"
+                            class="p-2 text-gray-600 hover:text-gray-800 text-2xl">
+                            ${icons.microphone}
+                        </button>
+                        <input type="text" id="messageInput" placeholder="${editingMessageId ? 'Edit message...' : 'Message'}" 
+                            class="flex-1 px-4 py-2 rounded-full bg-white border focus:outline-none focus:ring-2 focus:ring-green-500"
+                            onkeypress="if(event.key==='Enter') ${editingMessageId ? 'saveEditMessage()' : 'sendGroupMessage()'}">
+                        <button onclick="${editingMessageId ? 'saveEditMessage()' : 'sendGroupMessage()'}" 
+                            class="p-2 bg-green-600 text-white rounded-full hover:bg-green-700">
+                            ${icons.send}
+                        </button>
                     </div>
                 </div>
-            `;
-        }
+            </div>
 
-        function renderGroups() {
-            const groupsHtml = groups.length === 0
-                ? '<div class="text-center py-8 text-gray-500"><p>No groups yet. Create one!</p></div>'
-                : groups.map(group => `
-                    <div onclick="openGroupChat('${group.id}')" 
-                        class="bg-white p-4 border-b hover:bg-gray-50 transition cursor-pointer">
+            <input type="file" id="imageInput" accept="image/*" style="display:none;" onchange="handleImageSelect(event)">
+            
+            <div id="jitsi-container" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 9999; background: black;">
+                <button onclick="endCall()" style="position: absolute; top: 20px; right: 20px; z-index: 10000; background: #ef4444; color: white; padding: 10px 20px; border-radius: 25px; font-weight: bold; cursor: pointer; border: none; box-shadow: 0 4px 6px rgba(0,0,0,0.3);">
+                    ❌ End Call
+                </button>
+                <div id="jitsi-meet" style="width: 100%; height: 100%;"></div>
+            </div>
+        `;
+    }
+
+    function renderFriendRequests() {
+        const pendingRequests = friendRequests.filter(r => r.to === currentUser.username && r.status === 'pending');
+        
+        const requestsHtml = pendingRequests.length === 0
+            ? '<div class="text-center py-8 text-gray-500"><p>No pending friend requests</p></div>'
+            : pendingRequests.map(request => `
+                <div class="bg-white p-4 border-b">
+                    <div class="flex items-center justify-between">
                         <div class="flex items-center gap-3">
-                            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center text-white text-2xl">
-                                👥
+                            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white text-2xl">
+                                ${icons.user}
                             </div>
                             <div>
-                                <p class="font-semibold">${group.name}</p>
-                                ${group.bio ? `<p class="text-xs text-gray-400">${group.bio}</p>` : ''}
-                                <p class="text-sm text-gray-500">${group.members.length} members</p>
+                                <p class="font-semibold">@${request.from}</p>
+                                <p class="text-sm text-gray-500">wants to connect</p>
                             </div>
                         </div>
+                        <div class="flex gap-2">
+                            <button onclick="acceptFriendRequest('${request.id}', '${request.from}')" 
+                                class="bg-green-500 text-white px-4 py-2 rounded-full text-sm hover:bg-green-600">
+                                Accept
+                            </button>
+                            <button onclick="rejectFriendRequest('${request.id}')" 
+                                class="bg-gray-200 text-gray-700 px-4 py-2 rounded-full text-sm hover:bg-gray-300">
+                                Decline
+                            </button>
+                        </div>
                     </div>
-                `).join('');
+                </div>
+            `).join('');
 
+        return `
+            <div class="flex flex-col h-screen bg-gray-50">
+                <div class="bg-green-600 text-white p-4 shadow flex items-center gap-3">
+                    <button onclick="goHome()" class="text-white text-2xl">
+                        ←
+                    </button>
+                    <h2 class="text-xl font-semibold">Friend Requests</h2>
+                </div>
+
+                <div class="flex-1 overflow-y-auto">
+                    ${requestsHtml}
+                </div>
+            </div>
+        `;
+    }
+
+    function renderGroups() {
+        const groupsHtml = groups.length === 0
+            ? '<div class="text-center py-8 text-gray-500"><p>No groups yet. Create one!</p></div>'
+            : groups.map(group => `
+                <div onclick="openGroupChat('${group.id}')" 
+                    class="bg-white p-4 border-b hover:bg-gray-50 transition cursor-pointer">
+                    <div class="flex items-center gap-3">
+                        <div class="w-12 h-12 rounded-full bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center text-white text-2xl">
+                            👥
+                        </div>
+                        <div>
+                            <p class="font-semibold">${group.name}</p>
+                            ${group.bio ? `<p class="text-xs text-gray-400">${group.bio}</p>` : ''}
+                            <p class="text-sm text-gray-500">${group.members.length} members</p>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+
+        return `
+            <div class="flex flex-col h-screen bg-gray-50">
+                <div class="bg-green-600 text-white p-4 shadow flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <button onclick="goHome()" class="text-white text-2xl">
+                            ←
+                        </button>
+                        <h2 class="text-xl font-semibold">Groups</h2>
+                    </div>
+                    <button onclick="showCreateGroup()" 
+                        class="bg-green-700 text-white p-2 rounded-full hover:bg-green-800">
+                        ${icons.plus}
+                    </button>
+                </div>
+
+                <div class="flex-1 overflow-y-auto">
+                    ${groupsHtml}
+                </div>
+            </div>
+        `;
+    }
+
+    function renderCreateGroup() {
+        const friendsCheckboxes = friends.map(friend => `
+            <label class="flex items-center gap-3 p-3 bg-white border-b hover:bg-gray-50 cursor-pointer">
+                <input type="checkbox" value="${friend.friendUsername}" class="w-5 h-5 text-green-600 rounded">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white">
+                        ${icons.user}
+                    </div>
+                    <span class="font-medium">@${friend.friendUsername}</span>
+                </div>
+            </label>
+        `).join('');
+
+        return `
+            <div class="flex flex-col h-screen bg-gray-50">
+                <div class="bg-green-600 text-white p-4 shadow">
+                    <div class="flex items-center gap-3 mb-4">
+                        <button onclick="showAllGroups()" class="text-white text-2xl">
+                            ←
+                        </button>
+                        <h2 class="text-xl font-semibold">New Group</h2>
+                    </div>
+                    <input type="text" id="groupNameInput" placeholder="Group name" 
+                        class="w-full px-4 py-2 rounded-lg text-gray-900 focus:outline-none mb-2">
+                    <textarea id="groupBioInput" placeholder="Group bio (optional)" 
+                        class="w-full px-4 py-2 rounded-lg text-gray-900 focus:outline-none resize-none" rows="2"></textarea>
+                </div>
+
+                <div class="flex-1 overflow-y-auto">
+                    <p class="p-3 text-sm text-gray-600 bg-gray-100">Select members</p>
+                    ${friendsCheckboxes || '<div class="text-center py-8 text-gray-500"><p>Add friends first to create groups</p></div>'}
+                </div>
+
+                ${friends.length > 0 ? `
+                <div class="bg-white p-4 border-t">
+                    <button onclick="createGroupWithMembers()" 
+                        class="w-full bg-green-600 text-white py-3 rounded-full font-semibold hover:bg-green-700">
+                        Create Group
+                    </button>
+                </div>
+                ` : ''}
+            </div>
+        `;
+    }
+
+    function renderGroupInfo() {
+        if (!selectedGroup) return '';
+
+        const isAdmin = currentUser.username === selectedGroup.creator;
+
+        const membersHtml = selectedGroup.members.map(member => {
+            const isCreator = member === selectedGroup.creator;
+            const isMe = member === currentUser.username;
             return `
-                <div class="flex flex-col h-screen bg-gray-50">
-                    <div class="bg-green-600 text-white p-4 shadow flex items-center justify-between">
+            <div class="flex items-center justify-between p-3 bg-white border-b">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white">
+                        ${icons.user}
+                    </div>
+                    <div>
+                        <p class="font-medium">@${member} ${isMe ? '(You)' : ''}</p>
+                        ${isCreator ? '<p class="text-xs text-green-600">Group Admin</p>' : ''}
+                    </div>
+                </div>
+                ${!isMe && isAdmin ? `
+                <button onclick="removeGroupMember('${member}')" class="text-red-500 text-sm">
+                    Remove
+                </button>
+                ` : ''}
+            </div>
+        `}).join('');
+
+        return `
+            <div class="flex flex-col h-screen bg-gray-50">
+                <div class="bg-green-600 text-white p-4 shadow">
+                    <div class="flex items-center gap-3">
+                        <button onclick="openGroupChat('${selectedGroup.id}')" class="text-white text-2xl">
+                            ←
+                        </button>
+                        <h2 class="text-xl font-semibold">Group Info</h2>
+                    </div>
+                </div>
+
+                <div class="bg-white p-6 text-center border-b">
+                    <div class="w-24 h-24 rounded-full bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center text-white text-5xl mx-auto mb-3">
+                        👥
+                    </div>
+                    <h3 class="text-xl font-bold">${selectedGroup.name}</h3>
+                    ${selectedGroup.bio ? `<p class="text-sm text-gray-600 mt-1">${selectedGroup.bio}</p>` : ''}
+                    <p class="text-sm text-gray-500 mt-1">Group · ${selectedGroup.members.length} members</p>
+                    ${isAdmin ? `
+                    <button onclick="editGroupInfo()" class="mt-3 text-green-600 text-sm font-semibold">
+                        ${icons.edit} Edit Group Info
+                    </button>
+                    ` : ''}
+                </div>
+
+                <div class="flex-1 overflow-y-auto">
+                    <p class="p-3 text-sm font-semibold text-gray-600 bg-gray-100">${selectedGroup.members.length} members</p>
+                    ${membersHtml}
+                    
+                    ${isAdmin ? `
+                    <button onclick="showAddGroupMembers()" class="w-full p-4 bg-white border-b text-green-600 hover:bg-gray-50 text-left">
+                        <span class="text-2xl mr-3">${icons.plus}</span>
+                        Add members
+                    </button>
+                    ` : ''}
+                </div>
+
+                ${isAdmin ? `
+                <div class="bg-white p-4 border-t">
+                    <button onclick="deleteGroup()" class="w-full text-red-500 font-semibold">
+                        Delete Group
+                    </button>
+                </div>
+                ` : `
+                <div class="bg-white p-4 border-t">
+                    <button onclick="leaveGroup()" class="w-full text-red-500 font-semibold">
+                        Leave Group
+                    </button>
+                </div>
+                `}
+            </div>
+        `;
+    }
+
+    function renderChannels() {
+        const channelsHtml = channels.length === 0
+            ? '<div class="text-center py-8 text-gray-500"><p>No channels yet. Create one!</p></div>'
+            : channels.map(channel => {
+                const isFollowing = channel.followers && channel.followers.includes(currentUser.username);
+                return `
+                <div class="bg-white p-4 border-b hover:bg-gray-50 transition">
+                    <div class="flex items-center justify-between">
+                        <div onclick="viewChannel('${channel.id}')" class="flex items-center gap-3 flex-1 cursor-pointer">
+                            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-purple-400 to-purple-600 flex items-center justify-center text-white text-2xl">
+                                ${icons.channel}
+                            </div>
+                            <div>
+                                <p class="font-semibold">${channel.name}</p>
+                                ${channel.description ? `<p class="text-xs text-gray-500">${channel.description}</p>` : ''}
+                                <p class="text-xs text-gray-400">${channel.followers ? channel.followers.length : 0} followers</p>
+                            </div>
+                        </div>
+                        ${channel.creator !== currentUser.username ? `
+                        <button onclick="toggleFollowChannel('${channel.id}')" 
+                            class="${isFollowing ? 'bg-gray-200 text-gray-700' : 'bg-green-600 text-white'} px-4 py-2 rounded-full text-sm hover:opacity-80">
+                            ${isFollowing ? 'Following' : 'Follow'}
+                        </button>
+                        ` : ''}
+                    </div>
+                </div>
+            `}).join('');
+
+        return `
+            <div class="flex flex-col h-screen bg-gray-50">
+                <div class="bg-purple-600 text-white p-4 shadow">
+                    <div class="flex items-center justify-between mb-3">
                         <div class="flex items-center gap-3">
                             <button onclick="goHome()" class="text-white text-2xl">
                                 ←
                             </button>
-                            <h2 class="text-xl font-semibold">Groups</h2>
+                            <h2 class="text-xl font-semibold">Channels</h2>
                         </div>
-                        <button onclick="showCreateGroup()" 
-                            class="bg-green-700 text-white p-2 rounded-full hover:bg-green-800">
+                        <button onclick="showCreateChannel()" 
+                            class="bg-purple-700 text-white p-2 rounded-full hover:bg-purple-800">
                             ${icons.plus}
                         </button>
                     </div>
-
-                    <div class="flex-1 overflow-y-auto">
-                        ${groupsHtml}
-                    </div>
+                    <input type="text" id="channelSearch" placeholder="Search channels..." 
+                        oninput="filterChannels(this.value)"
+                        class="w-full px-4 py-2 rounded-full text-gray-900 focus:outline-none">
                 </div>
-            `;
-        }
 
-        function renderCreateGroup() {
-            const friendsCheckboxes = friends.map(friend => `
-                <label class="flex items-center gap-3 p-3 bg-white border-b hover:bg-gray-50 cursor-pointer">
-                    <input type="checkbox" value="${friend.friendUsername}" class="w-5 h-5 text-green-600 rounded">
+                <div id="channelsList" class="flex-1 overflow-y-auto">
+                    ${channelsHtml}
+                </div>
+            </div>
+        `;
+    }
+
+    function renderCreateChannel() {
+        return `
+            <div class="flex flex-col h-screen bg-gray-50">
+                <div class="bg-purple-600 text-white p-4 shadow">
                     <div class="flex items-center gap-3">
-                        <div class="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white">
-                            ${icons.user}
-                        </div>
-                        <span class="font-medium">@${friend.friendUsername}</span>
-                    </div>
-                </label>
-            `).join('');
-
-            return `
-                <div class="flex flex-col h-screen bg-gray-50">
-                    <div class="bg-green-600 text-white p-4 shadow">
-                        <div class="flex items-center gap-3 mb-4">
-                            <button onclick="showAllGroups()" class="text-white text-2xl">
-                                ←
-                            </button>
-                            <h2 class="text-xl font-semibold">New Group</h2>
-                        </div>
-                        <input type="text" id="groupNameInput" placeholder="Group name" 
-                            class="w-full px-4 py-2 rounded-lg text-gray-900 focus:outline-none mb-2">
-                        <textarea id="groupBioInput" placeholder="Group bio (optional)" 
-                            class="w-full px-4 py-2 rounded-lg text-gray-900 focus:outline-none resize-none" rows="2"></textarea>
-                    </div>
-
-                    <div class="flex-1 overflow-y-auto">
-                        <p class="p-3 text-sm text-gray-600 bg-gray-100">Select members</p>
-                        ${friendsCheckboxes || '<div class="text-center py-8 text-gray-500"><p>Add friends first to create groups</p></div>'}
-                    </div>
-
-                    ${friends.length > 0 ? `
-                    <div class="bg-white p-4 border-t">
-                        <button onclick="createGroupWithMembers()" 
-                            class="w-full bg-green-600 text-white py-3 rounded-full font-semibold hover:bg-green-700">
-                            Create Group
+                        <button onclick="showChannels()" class="text-white text-2xl">
+                            ←
                         </button>
+                        <h2 class="text-xl font-semibold">New Channel</h2>
                     </div>
-                    ` : ''}
                 </div>
-            `;
-        }
 
-        function renderGroupInfo() {
-            if (!selectedGroup) return '';
-
-            const isAdmin = currentUser.username === selectedGroup.creator;
-
-            const membersHtml = selectedGroup.members.map(member => {
-                const isCreator = member === selectedGroup.creator;
-                const isMe = member === currentUser.username;
-                return `
-                <div class="flex items-center justify-between p-3 bg-white border-b">
-                    <div class="flex items-center gap-3">
-                        <div class="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white">
-                            ${icons.user}
-                        </div>
-                        <div>
-                            <p class="font-medium">@${member} ${isMe ? '(You)' : ''}</p>
-                            ${isCreator ? '<p class="text-xs text-green-600">Group Admin</p>' : ''}
+                <div class="flex-1 p-4">
+                    <div class="bg-white rounded-lg p-6 shadow">
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-700 mb-2">Channel Name</label>
+                                <input type="text" id="channelNameInput" placeholder="Enter channel name" 
+                                    class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-700 mb-2">Description</label>
+                                <textarea id="channelDescInput" placeholder="Describe your channel" 
+                                    class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none" rows="3"></textarea>
+                            </div>
                         </div>
                     </div>
-                    ${!isMe && isAdmin ? `
-                    <button onclick="removeGroupMember('${member}')" class="text-red-500 text-sm">
-                        Remove
+                </div>
+
+                <div class="bg-white p-4 border-t">
+                    <button onclick="createChannel()" 
+                        class="w-full bg-purple-600 text-white py-3 rounded-full font-semibold hover:bg-purple-700">
+                        Create Channel
                     </button>
+                </div>
+            </div>
+        `;
+    }
+
+    function renderChannelView() {
+        if (!selectedChannel) return '';
+
+        const isCreator = selectedChannel.creator === currentUser.username;
+        const isFollowing = selectedChannel.followers && selectedChannel.followers.includes(currentUser.username);
+
+        const channelPosts = messages
+            .filter(m => m.channelId === selectedChannel.id)
+            .sort((a, b) => (b.timestamp?.seconds || 0) - (a.timestamp?.seconds || 0));
+
+        const postsHtml = channelPosts.length === 0
+            ? '<div class="text-center py-8 text-gray-500"><p>No posts yet</p></div>'
+            : channelPosts.map(post => {
+                const time = formatTime(post.timestamp);
+                return `
+                <div class="bg-white p-4 border-b">
+                    ${post.imageUrl ? `
+                    <img src="${post.imageUrl}" alt="Post" class="w-full rounded-lg mb-2">
                     ` : ''}
+                    ${post.text ? `<p class="text-sm mb-2">${post.text}</p>` : ''}
+                    <p class="text-xs text-gray-400">${time}</p>
                 </div>
             `}).join('');
 
-            return `
-                <div class="flex flex-col h-screen bg-gray-50">
-                    <div class="bg-green-600 text-white p-4 shadow">
-                        <div class="flex items-center gap-3">
-                            <button onclick="openGroupChat('${selectedGroup.id}')" class="text-white text-2xl">
-                                ←
-                            </button>
-                            <h2 class="text-xl font-semibold">Group Info</h2>
+        return `
+            <div class="flex flex-col h-screen bg-gray-50">
+                <div class="bg-purple-600 text-white p-4 shadow">
+                    <div class="flex items-center gap-3">
+                        <button onclick="showChannels()" class="text-white text-2xl">
+                            ←
+                        </button>
+                        <div class="flex-1">
+                            <p class="font-semibold">${selectedChannel.name}</p>
+                            ${selectedChannel.description ? `<p class="text-xs text-purple-100">${selectedChannel.description}</p>` : ''}
+                            <p class="text-xs text-purple-100">${selectedChannel.followers ? selectedChannel.followers.length : 0} followers</p>
                         </div>
-                    </div>
-
-                    <div class="bg-white p-6 text-center border-b">
-                        <div class="w-24 h-24 rounded-full bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center text-white text-5xl mx-auto mb-3">
-                            👥
-                        </div>
-                        <h3 class="text-xl font-bold">${selectedGroup.name}</h3>
-                        ${selectedGroup.bio ? `<p class="text-sm text-gray-600 mt-1">${selectedGroup.bio}</p>` : ''}
-                        <p class="text-sm text-gray-500 mt-1">Group · ${selectedGroup.members.length} members</p>
-                        ${isAdmin ? `
-                        <button onclick="editGroupInfo()" class="mt-3 text-green-600 text-sm font-semibold">
-                            ${icons.edit} Edit Group Info
+                        ${!isCreator ? `
+                        <button onclick="toggleFollowChannel('${selectedChannel.id}')" 
+                            class="${isFollowing ? 'bg-purple-700' : 'bg-white text-purple-600'} px-4 py-2 rounded-full text-sm font-semibold">
+                            ${isFollowing ? 'Following' : 'Follow'}
                         </button>
                         ` : ''}
                     </div>
-
-                    <div class="flex-1 overflow-y-auto">
-                        <p class="p-3 text-sm font-semibold text-gray-600 bg-gray-100">${selectedGroup.members.length} members</p>
-                        ${membersHtml}
-                        
-                        ${isAdmin ? `
-                        <button onclick="showAddGroupMembers()" class="w-full p-4 bg-white border-b text-green-600 hover:bg-gray-50 text-left">
-                            <span class="text-2xl mr-3">${icons.plus}</span>
-                            Add members
-                        </button>
-                        ` : ''}
-                    </div>
-
-                    ${isAdmin ? `
-                    <div class="bg-white p-4 border-t">
-                        <button onclick="deleteGroup()" class="w-full text-red-500 font-semibold">
-                            Delete Group
-                        </button>
-                    </div>
-                    ` : `
-                    <div class="bg-white p-4 border-t">
-                        <button onclick="leaveGroup()" class="w-full text-red-500 font-semibold">
-                            Leave Group
-                        </button>
-                    </div>
-                    `}
                 </div>
-            `;
-        }
 
-        function renderChannels() {
-            const channelsHtml = channels.length === 0
-                ? '<div class="text-center py-8 text-gray-500"><p>No channels yet. Create one!</p></div>'
-                : channels.map(channel => {
-                    const isFollowing = channel.followers && channel.followers.includes(currentUser.username);
-                    return `
-                    <div class="bg-white p-4 border-b hover:bg-gray-50 transition">
-                        <div class="flex items-center justify-between">
-                            <div onclick="viewChannel('${channel.id}')" class="flex items-center gap-3 flex-1 cursor-pointer">
-                                <div class="w-12 h-12 rounded-full bg-gradient-to-br from-purple-400 to-purple-600 flex items-center justify-center text-white text-2xl">
-                                    ${icons.channel}
-                                </div>
-                                <div>
-                                    <p class="font-semibold">${channel.name}</p>
-                                    ${channel.description ? `<p class="text-xs text-gray-500">${channel.description}</p>` : ''}
-                                    <p class="text-xs text-gray-400">${channel.followers ? channel.followers.length : 0} followers</p>
-                                </div>
-                            </div>
-                            ${channel.creator !== currentUser.username ? `
-                            <button onclick="toggleFollowChannel('${channel.id}')" 
-                                class="${isFollowing ? 'bg-gray-200 text-gray-700' : 'bg-green-600 text-white'} px-4 py-2 rounded-full text-sm hover:opacity-80">
-                                ${isFollowing ? 'Following' : 'Follow'}
-                            </button>
-                            ` : ''}
-                        </div>
-                    </div>
-                `}).join('');
-
-            return `
-                <div class="flex flex-col h-screen bg-gray-50">
-                    <div class="bg-purple-600 text-white p-4 shadow">
-                        <div class="flex items-center justify-between mb-3">
-                            <div class="flex items-center gap-3">
-                                <button onclick="goHome()" class="text-white text-2xl">
-                                    ←
-                                </button>
-                                <h2 class="text-xl font-semibold">Channels</h2>
-                            </div>
-                            <button onclick="showCreateChannel()" 
-                                class="bg-purple-700 text-white p-2 rounded-full hover:bg-purple-800">
-                                ${icons.plus}
-                            </button>
-                        </div>
-                        <input type="text" id="channelSearch" placeholder="Search channels..." 
-                            oninput="filterChannels(this.value)"
-                            class="w-full px-4 py-2 rounded-full text-gray-900 focus:outline-none">
-                    </div>
-
-                    <div id="channelsList" class="flex-1 overflow-y-auto">
-                        ${channelsHtml}
-                    </div>
+                <div class="flex-1 overflow-y-auto">
+                    ${postsHtml}
                 </div>
-            `;
-        }
 
-        function renderCreateChannel() {
-            return `
-                <div class="flex flex-col h-screen bg-gray-50">
-                    <div class="bg-purple-600 text-white p-4 shadow">
-                        <div class="flex items-center gap-3">
-                            <button onclick="showChannels()" class="text-white text-2xl">
-                                ←
-                            </button>
-                            <h2 class="text-xl font-semibold">New Channel</h2>
-                        </div>
-                    </div>
-
-                    <div class="flex-1 p-4">
-                        <div class="bg-white rounded-lg p-6 shadow">
-                            <div class="space-y-4">
-                                <div>
-                                    <label class="block text-sm font-semibold text-gray-700 mb-2">Channel Name</label>
-                                    <input type="text" id="channelNameInput" placeholder="Enter channel name" 
-                                        class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500">
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-semibold text-gray-700 mb-2">Description</label>
-                                    <textarea id="channelDescInput" placeholder="Describe your channel" 
-                                        class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none" rows="3"></textarea>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="bg-white p-4 border-t">
-                        <button onclick="createChannel()" 
-                            class="w-full bg-purple-600 text-white py-3 rounded-full font-semibold hover:bg-purple-700">
-                            Create Channel
+                ${isCreator ? `
+                <div class="bg-gray-100 p-2 border-t">
+                    <div class="flex gap-2 items-center">
+                        <button onclick="captureImage()" 
+                            class="p-2 text-gray-600 hover:text-gray-800 text-2xl">
+                            ${icons.camera}
+                        </button>
+                        <input type="text" id="channelPostInput" placeholder="Share with followers..." 
+                            class="flex-1 px-4 py-2 rounded-full bg-white border focus:outline-none focus:ring-2 focus:ring-purple-500"
+                            onkeypress="if(event.key==='Enter') postToChannel()">
+                        <button onclick="postToChannel()" 
+                            class="p-2 bg-purple-600 text-white rounded-full hover:bg-purple-700">
+                            ${icons.send}
                         </button>
                     </div>
                 </div>
-            `;
+                ` : ''}
+            </div>
+
+            <input type="file" id="imageInput" accept="image/*" style="display:none;" onchange="handleImageSelect(event)">
+        `;
+    }
+
+    function formatTime(timestamp) {
+        if (!timestamp) return '';
+        const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp.seconds * 1000);
+        const now = new Date();
+        const diff = now - date;
+        
+        if (diff < 86400000) {
+            return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+        } else if (diff < 604800000) {
+            return date.toLocaleDateString('en-US', { weekday: 'short' });
+        } else {
+            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
         }
+    }
 
-        function renderChannelView() {
-            if (!selectedChannel) return '';
+    function formatDuration(seconds) {
+        const mins = Math.floor(seconds / 60);
+        const secs = Math.floor(seconds % 60);
+        return `${mins}:${secs.toString().padStart(2, '0')}`;
+    }
 
-            const isCreator = selectedChannel.creator === currentUser.username;
-            const isFollowing = selectedChannel.followers && selectedChannel.followers.includes(currentUser.username);
-
-            const channelPosts = messages
-                .filter(m => m.channelId === selectedChannel.id)
-                .sort((a, b) => (b.timestamp?.seconds || 0) - (a.timestamp?.seconds || 0));
-
-            const postsHtml = channelPosts.length === 0
-                ? '<div class="text-center py-8 text-gray-500"><p>No posts yet</p></div>'
-                : channelPosts.map(post => {
-                    const time = formatTime(post.timestamp);
-                    return `
-                    <div class="bg-white p-4 border-b">
-                        ${post.imageUrl ? `
-                        <img src="${post.imageUrl}" alt="Post" class="w-full rounded-lg mb-2">
-                        ` : ''}
-                        ${post.text ? `<p class="text-sm mb-2">${post.text}</p>` : ''}
-                        <p class="text-xs text-gray-400">${time}</p>
-                    </div>
-                `}).join('');
-
-            return `
-                <div class="flex flex-col h-screen bg-gray-50">
-                    <div class="bg-purple-600 text-white p-4 shadow">
-                        <div class="flex items-center gap-3">
-                            <button onclick="showChannels()" class="text-white text-2xl">
-                                ←
-                            </button>
-                            <div class="flex-1">
-                                <p class="font-semibold">${selectedChannel.name}</p>
-                                ${selectedChannel.description ? `<p class="text-xs text-purple-100">${selectedChannel.description}</p>` : ''}
-                                <p class="text-xs text-purple-100">${selectedChannel.followers ? selectedChannel.followers.length : 0} followers</p>
-                            </div>
-                            ${!isCreator ? `
-                            <button onclick="toggleFollowChannel('${selectedChannel.id}')" 
-                                class="${isFollowing ? 'bg-purple-700' : 'bg-white text-purple-600'} px-4 py-2 rounded-full text-sm font-semibold">
-                                ${isFollowing ? 'Following' : 'Follow'}
-                            </button>
-                            ` : ''}
-                        </div>
-                    </div>
-
-                    <div class="flex-1 overflow-y-auto">
-                        ${postsHtml}
-                    </div>
-
-                    ${isCreator ? `
-                    <div class="bg-gray-100 p-2 border-t">
-                        <div class="flex gap-2 items-center">
-                            <button onclick="captureImage()" 
-                                class="p-2 text-gray-600 hover:text-gray-800 text-2xl">
-                                ${icons.camera}
-                            </button>
-                            <input type="text" id="channelPostInput" placeholder="Share with followers..." 
-                                class="flex-1 px-4 py-2 rounded-full bg-white border focus:outline-none focus:ring-2 focus:ring-purple-500"
-                                onkeypress="if(event.key==='Enter') postToChannel()">
-                            <button onclick="postToChannel()" 
-                                class="p-2 bg-purple-600 text-white rounded-full hover:bg-purple-700">
-                                ${icons.send}
-                            </button>
-                        </div>
-                    </div>
-                    ` : ''}
-                </div>
-
-                <input type="file" id="imageInput" accept="image/*" style="display:none;" onchange="handleImageSelect(event)">
-            `;
+    function getColorForUser(username) {
+        const colors = ['#1e88e5', '#e53935', '#43a047', '#fb8c00', '#8e24aa', '#00acc1', '#d81b60', '#546e7a'];
+        let hash = 0;
+        for (let i = 0; i < username.length; i++) {
+            hash = username.charCodeAt(i) + ((hash << 5) - hash);
         }
+        return colors[Math.abs(hash) % colors.length];
+    }
 
-        function formatTime(timestamp) {
-            if (!timestamp) return '';
-            const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp.seconds * 1000);
-            const now = new Date();
-            const diff = now - date;
+    // VOICE RECORDING FUNCTIONS
+    async function toggleVoiceRecording() {
+        if (isRecording) {
+            stopRecording();
+        } else {
+            startRecording();
+        }
+    }
+
+    async function startRecording() {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            mediaRecorder = new MediaRecorder(stream);
+            audioChunks = [];
             
-            if (diff < 86400000) {
-                return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
-            } else if (diff < 604800000) {
-                return date.toLocaleDateString('en-US', { weekday: 'short' });
-            } else {
-                return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            mediaRecorder.ondataavailable = (event) => {
+                audioChunks.push(event.data);
+            };
+            
+            mediaRecorder.onstop = async () => {
+                const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                await uploadVoiceNote(audioBlob);
+                stream.getTracks().forEach(track => track.stop());
+            };
+            
+            mediaRecorder.start();
+            isRecording = true;
+            recordingStartTime = Date.now();
+            
+            document.getElementById('recordingIndicator').classList.remove('hidden');
+            
+            recordingTimer = setInterval(() => {
+                const elapsed = Math.floor((Date.now() - recordingStartTime) / 1000);
+                document.getElementById('recordingTime').textContent = formatDuration(elapsed);
+            }, 1000);
+            
+        } catch (error) {
+            console.error('Recording error:', error);
+            alert('Could not access microphone. Please allow microphone access.');
+        }
+    }
+
+    function stopRecording() {
+        if (mediaRecorder && isRecording) {
+                mediaRecorder.stop();
+                isRecording = false;
+                clearInterval(recordingTimer);
+                document.getElementById('recordingIndicator').classList.add('hidden');
             }
         }
 
-        function getColorForUser(username) {
-            const colors = ['#1e88e5', '#e53935', '#43a047', '#fb8c00', '#8e24aa', '#00acc1', '#d81b60', '#546e7a'];
-            let hash = 0;
-            for (let i = 0; i < username.length; i++) {
-                hash = username.charCodeAt(i) + ((hash << 5) - hash);
+        async function uploadVoiceNote(audioBlob) {
+            if (!selectedFriend && !selectedGroup) {
+                alert('Please select a friend or group first');
+                return;
             }
-            return colors[Math.abs(hash) % colors.length];
+
+            try {
+                const duration = formatDuration(Math.floor((Date.now() - recordingStartTime) / 1000));
+                const filename = `voice_${Date.now()}.webm`;
+                const storageRef = storage.ref().child(`voice_notes/${filename}`);
+                
+                await storageRef.put(audioBlob);
+                const voiceUrl = await storageRef.getDownloadURL();
+
+                if (selectedGroup) {
+                    await db.collection('messages').add({
+                        from: currentUser.username,
+                        groupId: selectedGroup.id,
+                        voiceUrl: voiceUrl,
+                        duration: duration,
+                        timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                        type: 'group_voice'
+                    });
+                } else {
+                    await db.collection('messages').add({
+                        from: currentUser.username,
+                        to: selectedFriend.friendUsername,
+                        voiceUrl: voiceUrl,
+                        duration: duration,
+                        timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                        type: 'voice'
+                    });
+                }
+
+                console.log('Voice note sent successfully!');
+                scrollToBottom();
+            } catch (error) {
+                console.error('Upload voice note error:', error);
+                alert('Failed to send voice note');
+            }
+        }
+
+        function playVoiceNote(url) {
+            const audio = new Audio(url);
+            audio.play().catch(error => {
+                console.error('Play audio error:', error);
+                alert('Failed to play voice note');
+            });
+        }
+
+        // JITSI VIDEO/AUDIO CALL FUNCTIONS
+        function startVideoCall() {
+            if (!selectedFriend) {
+                alert('Please select a friend first');
+                return;
+            }
+
+            const users = [currentUser.username, selectedFriend.friendUsername].sort();
+            const roomName = `video_${users[0]}_${users[1]}`.replace(/\s/g, '_');
+            
+            initializeJitsiCall(roomName, true);
+            
+            db.collection('messages').add({
+                from: currentUser.username,
+                to: selectedFriend.friendUsername,
+                text: `📹 Video call started`,
+                type: 'call_notification',
+                roomName: roomName,
+                timestamp: firebase.firestore.FieldValue.serverTimestamp()
+            }).catch(err => console.error('Failed to send call notification:', err));
+        }
+
+        function startAudioCall() {
+            if (!selectedFriend) {
+                alert('Please select a friend first');
+                return;
+            }
+
+            const users = [currentUser.username, selectedFriend.friendUsername].sort();
+            const roomName = `audio_${users[0]}_${users[1]}`.replace(/\s/g, '_');
+            
+            initializeJitsiCall(roomName, false);
+            
+            db.collection('messages').add({
+                from: currentUser.username,
+                to: selectedFriend.friendUsername,
+                text: `📞 Audio call started`,
+                type: 'call_notification',
+                roomName: roomName,
+                timestamp: firebase.firestore.FieldValue.serverTimestamp()
+            }).catch(err => console.error('Failed to send call notification:', err));
+        }
+
+        function startGroupVideoCall() {
+            if (!selectedGroup) {
+                alert('Please select a group first');
+                return;
+            }
+
+            const roomName = `group_video_${selectedGroup.id}`.replace(/\s/g, '_');
+            
+            initializeJitsiCall(roomName, true);
+            
+            db.collection('messages').add({
+                from: currentUser.username,
+                groupId: selectedGroup.id,
+                text: `📹 ${currentUser.username} started a video call`,
+                type: 'group_call_notification',
+                roomName: roomName,
+                timestamp: firebase.firestore.FieldValue.serverTimestamp()
+            }).catch(err => console.error('Failed to send call notification:', err));
+        }
+
+        function startGroupAudioCall() {
+            if (!selectedGroup) {
+                alert('Please select a group first');
+                return;
+            }
+
+            const roomName = `group_audio_${selectedGroup.id}`.replace(/\s/g, '_');
+            
+            initializeJitsiCall(roomName, false);
+            
+            db.collection('messages').add({
+                from: currentUser.username,
+                groupId: selectedGroup.id,
+                text: `📞 ${currentUser.username} started an audio call`,
+                type: 'group_call_notification',
+                roomName: roomName,
+                timestamp: firebase.firestore.FieldValue.serverTimestamp()
+            }).catch(err => console.error('Failed to send call notification:', err));
+        }
+
+        function initializeJitsiCall(roomName, withVideo) {
+            console.log(`Starting ${withVideo ? 'video' : 'audio'} call:`, roomName);
+            
+            document.getElementById('jitsi-container').style.display = 'block';
+            
+            const options = {
+                roomName: roomName,
+                parentNode: document.querySelector('#jitsi-meet'),
+                width: '100%',
+                height: '100%',
+                configOverrides: {
+                    startWithAudioMuted: false,
+                    startWithVideoMuted: !withVideo,
+                    prejoinPageEnabled: false,
+                    disableDeepLinking: true
+                },
+                interfaceConfigOverrides: {
+                    TOOLBAR_BUTTONS: [
+                        'microphone', 'camera', 'closedcaptions', 'desktop',
+                        'fullscreen', 'fodeviceselection', 'hangup', 'chat',
+                        'settings', 'videoquality', 'filmstrip', 'tileview'
+                    ],
+                    SHOW_JITSI_WATERMARK: false,
+                    SHOW_WATERMARK_FOR_GUESTS: false,
+                    MOBILE_APP_PROMO: false,
+                    DISPLAY_WELCOME_PAGE_CONTENT: false
+                },
+                userInfo: {
+                    displayName: currentUser.username
+                }
+            };
+
+            jitsiApi = new JitsiMeetExternalAPI("meet.jit.si", options);
+
+            jitsiApi.addEventListener('readyToClose', () => {
+                endCall();
+            });
+        }
+
+        function endCall() {
+            console.log('Ending call');
+            
+            if (jitsiApi) {
+                jitsiApi.dispose();
+                jitsiApi = null;
+            }
+            
+            document.getElementById('jitsi-container').style.display = 'none';
         }
 
         // Authentication functions
@@ -1178,135 +1497,6 @@
                 console.error('Delete message error:', error);
                 alert('Failed to delete message');
             }
-        }
-
-        // VIDEO CALL FUNCTIONS - NO SIGNUP NEEDED!
-        function startVideoCall() {
-            if (!selectedFriend) {
-                alert('Please select a friend first');
-                return;
-            }
-
-            // Create unique room name (sorted alphabetically for consistency)
-            const users = [currentUser.username, selectedFriend.friendUsername].sort();
-            const roomName = `call_${users[0]}_${users[1]}`.replace(/\s/g, '_');
-            
-            console.log('🎥 Starting video call:', roomName);
-            
-            // Show video container
-            document.getElementById('jitsi-container').style.display = 'block';
-            
-            // Initialize Jitsi Meet
-            jitsiApi = new JitsiMeetExternalAPI("meet.jit.si", {
-                roomName: roomName,
-                parentNode: document.querySelector('#jitsi-meet'),
-                width: '100%',
-                height: '100%',
-                configOverrides: {
-                    startWithAudioMuted: false,
-                    startWithVideoMuted: false,
-                    prejoinPageEnabled: false, // Skip waiting room
-                    disableDeepLinking: true
-                },
-                interfaceConfigOverrides: {
-                    TOOLBAR_BUTTONS: [
-                        'microphone', 'camera', 'closedcaptions', 'desktop',
-                        'fullscreen', 'fodeviceselection', 'hangup', 'chat',
-                        'settings', 'videoquality', 'filmstrip', 'tileview'
-                    ],
-                    SHOW_JITSI_WATERMARK: false,
-                    SHOW_WATERMARK_FOR_GUESTS: false,
-                    MOBILE_APP_PROMO: false,
-                    DISPLAY_WELCOME_PAGE_CONTENT: false
-                },
-                userInfo: {
-                    displayName: currentUser.username
-                }
-            });
-
-            // Listen for call end
-            jitsiApi.addEventListener('readyToClose', () => {
-                endVideoCall();
-            });
-
-            // Send call notification via Firebase
-            db.collection('messages').add({
-                from: currentUser.username,
-                to: selectedFriend.friendUsername,
-                text: `📹 Video call started. Room: ${roomName}`,
-                type: 'call_notification',
-                roomName: roomName,
-                timestamp: firebase.firestore.FieldValue.serverTimestamp()
-            }).catch(err => console.error('Failed to send call notification:', err));
-        }
-
-        function startGroupVideoCall() {
-            if (!selectedGroup) {
-                alert('Please select a group first');
-                return;
-            }
-
-            // Create unique room name for group
-            const roomName = `group_${selectedGroup.id}_${selectedGroup.name}`.replace(/\s/g, '_');
-            
-            console.log('🎥 Starting group video call:', roomName);
-            
-            // Show video container
-            document.getElementById('jitsi-container').style.display = 'block';
-            
-            // Initialize Jitsi Meet
-            jitsiApi = new JitsiMeetExternalAPI("meet.jit.si", {
-                roomName: roomName,
-                parentNode: document.querySelector('#jitsi-meet'),
-                width: '100%',
-                height: '100%',
-                configOverrides: {
-                    startWithAudioMuted: false,
-                    startWithVideoMuted: false,
-                    prejoinPageEnabled: false,
-                    disableDeepLinking: true
-                },
-                interfaceConfigOverrides: {
-                    TOOLBAR_BUTTONS: [
-                        'microphone', 'camera', 'closedcaptions', 'desktop',
-                        'fullscreen', 'fodeviceselection', 'hangup', 'chat',
-                        'settings', 'videoquality', 'filmstrip', 'tileview'
-                    ],
-                    SHOW_JITSI_WATERMARK: false,
-                    SHOW_WATERMARK_FOR_GUESTS: false,
-                    MOBILE_APP_PROMO: false,
-                    DISPLAY_WELCOME_PAGE_CONTENT: false
-                },
-                userInfo: {
-                    displayName: currentUser.username
-                }
-            });
-
-            // Listen for call end
-            jitsiApi.addEventListener('readyToClose', () => {
-                endVideoCall();
-            });
-
-            // Send group call notification
-            db.collection('messages').add({
-                from: currentUser.username,
-                groupId: selectedGroup.id,
-                text: `📹 ${currentUser.username} started a video call. Room: ${roomName}`,
-                type: 'group_call_notification',
-                roomName: roomName,
-                timestamp: firebase.firestore.FieldValue.serverTimestamp()
-            }).catch(err => console.error('Failed to send call notification:', err));
-        }
-
-        function endVideoCall() {
-            console.log('📴 Ending video call');
-            
-            if (jitsiApi) {
-                jitsiApi.dispose();
-                jitsiApi = null;
-            }
-            
-            document.getElementById('jitsi-container').style.display = 'none';
         }
 
         // Friend functions
@@ -1656,7 +1846,6 @@
 
             const reader = new FileReader();
             reader.onload = async (e) => {
-                // Check if posting story from home
                 if (currentView === 'home') {
                     const isPublic = confirm('Make this story public?\n\nOK = Public (everyone can see)\nCancel = Private (only friends can see)');
                     await uploadStory(e.target.result, isPublic);
@@ -1762,7 +1951,6 @@
             const story = stories.find(s => s.id === storyId);
             if (!story) return;
 
-            // Track view if not own story and not already viewed
             if (story.username !== currentUser.username) {
                 const viewedBy = story.viewedBy || [];
                 if (!viewedBy.includes(currentUser.username)) {
@@ -1790,7 +1978,8 @@
                                 ${icons.user}
                             </div>
                             <span class="text-white font-semibold">@${story.username}</span>
-                            ${!story.isPublic ? `<span class="text-white">${icons.lock}</span>` : ''}
+                            ${!story.isPublic ? `<span class="text-white"
+                            ">${icons.lock}</span>` : ''}
                         </div>
                         <div class="flex items-center gap-2">
                             ${isMyStory ? `
