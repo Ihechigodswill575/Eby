@@ -8,6 +8,8 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <!-- JITSI MEET SCRIPT - NO SIGNUP NEEDED! -->
+    <script src='https://meet.jit.si/external_api.js'></script>
 </head>
 <body class="bg-gray-100">
     <div id="app"></div>
@@ -44,6 +46,7 @@
         let channels = [];
         let allUsers = [];
         let editingMessageId = null;
+        let jitsiApi = null; // For video calls
 
         const icons = {
             camera: '📷',
@@ -61,7 +64,8 @@
             eye: '👁️',
             lock: '🔒',
             globe: '🌍',
-            channel: '📢'
+            channel: '📢',
+            videoCall: '📹' // NEW ICON
         };
 
         function render() {
@@ -121,7 +125,7 @@
                                 <strong>✅ Real-time Chat & Stories</strong><br/>
                                 • Private & Public Stories<br/>
                                 • Groups & Channels<br/>
-                                • Message Editing & More!
+                                • Video Calls & More!
                             </p>
                         </div>
                         
@@ -138,7 +142,6 @@
         function renderHome() {
             const pendingRequestsCount = friendRequests.filter(r => r.to === currentUser.username && r.status === 'pending').length;
             
-            // Filter messages to only show those involving current user
             const userMessages = messages.filter(m => 
                 m.from === currentUser.username || 
                 m.to === currentUser.username ||
@@ -210,7 +213,6 @@
                 </div>
             `}).join('');
 
-            // Filter stories: show public stories from everyone, private stories only from friends + own stories
             const visibleStories = stories.filter(story => {
                 if (story.username === currentUser.username) return true;
                 if (story.isPublic) return true;
@@ -372,6 +374,10 @@
                             <p class="font-semibold">@${selectedFriend.friendUsername}</p>
                             <p class="text-xs text-green-100">Tap here for info</p>
                         </div>
+                        <!-- VIDEO CALL BUTTON -->
+                        <button onclick="startVideoCall()" class="bg-green-700 hover:bg-green-800 px-4 py-2 rounded-full text-sm font-semibold transition">
+                            ${icons.videoCall} Call
+                        </button>
                     </div>
 
                     <div id="chatMessages" class="flex-1 overflow-y-auto p-3" style="background-image: url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22100%22 height=%22100%22><rect fill=%22%23e5ddd5%22 width=%22100%22 height=%22100%22/></svg>');">
@@ -402,6 +408,14 @@
                 </div>
 
                 <input type="file" id="imageInput" accept="image/*" style="display:none;" onchange="handleImageSelect(event)">
+                
+                <!-- VIDEO CALL CONTAINER -->
+                <div id="jitsi-container" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 9999; background: black;">
+                    <button onclick="endVideoCall()" style="position: absolute; top: 20px; right: 20px; z-index: 10000; background: #ef4444; color: white; padding: 10px 20px; border-radius: 25px; font-weight: bold; cursor: pointer; border: none; box-shadow: 0 4px 6px rgba(0,0,0,0.3);">
+                        ❌ End Call
+                    </button>
+                    <div id="jitsi-meet" style="width: 100%; height: 100%;"></div>
+                </div>
             `;
         }
 
@@ -473,6 +487,10 @@
                             ${selectedGroup.bio ? `<p class="text-xs text-green-100 truncate">${selectedGroup.bio}</p>` : ''}
                             <p class="text-xs text-green-100">${selectedGroup.members.length} members</p>
                         </div>
+                        <!-- GROUP VIDEO CALL BUTTON -->
+                        <button onclick="startGroupVideoCall()" class="bg-green-700 hover:bg-green-800 px-4 py-2 rounded-full text-sm font-semibold transition">
+                            ${icons.videoCall} Call
+                        </button>
                     </div>
 
                     <div id="chatMessages" class="flex-1 overflow-y-auto p-3" style="background-image: url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22100%22 height=%22100%22><rect fill=%22%23e5ddd5%22 width=%22100%22 height=%22100%22/></svg>');">
@@ -492,7 +510,8 @@
                                 ${icons.camera}
                             </button>
                             <input type="text" id="messageInput" placeholder="${editingMessageId ? 'Edit message...' : 'Message'}" 
-                                class="flex-1 px-4 py-2 rounded-full bg-white border focus:outline-none focus:ring-2 focus:ring-green-500"
+                                class="
+                                flex-1 px-4 py-2 rounded-full bg-white border focus:outline-none focus:ring-2 focus:ring-green-500"
                                 onkeypress="if(event.key==='Enter') ${editingMessageId ? 'saveEditMessage()' : 'sendGroupMessage()'}">
                             <button onclick="${editingMessageId ? 'saveEditMessage()' : 'sendGroupMessage()'}" 
                                 class="p-2 bg-green-600 text-white rounded-full hover:bg-green-700">
@@ -503,6 +522,14 @@
                 </div>
 
                 <input type="file" id="imageInput" accept="image/*" style="display:none;" onchange="handleImageSelect(event)">
+                
+                <!-- GROUP VIDEO CALL CONTAINER -->
+                <div id="jitsi-container" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 9999; background: black;">
+                    <button onclick="endVideoCall()" style="position: absolute; top: 20px; right: 20px; z-index: 10000; background: #ef4444; color: white; padding: 10px 20px; border-radius: 25px; font-weight: bold; cursor: pointer; border: none; box-shadow: 0 4px 6px rgba(0,0,0,0.3);">
+                        ❌ End Call
+                    </button>
+                    <div id="jitsi-meet" style="width: 100%; height: 100%;"></div>
+                </div>
             `;
         }
 
@@ -517,7 +544,7 @@
                             <div class="flex items-center gap-3">
                                 <div class="w-12 h-12 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white text-2xl">
                                     ${icons.user}
-                                    </div>
+                                </div>
                                 <div>
                                     <p class="font-semibold">@${request.from}</p>
                                     <p class="text-sm text-gray-500">wants to connect</p>
@@ -922,6 +949,12 @@
                 return;
             }
 
+            if (password.length < 6) {
+                errorDiv.textContent = 'Password must be at least 6 characters';
+                errorDiv.classList.remove('hidden');
+                return;
+            }
+
             try {
                 const usernameQuery = await db.collection('users').where('username', '==', username).get();
                 if (!usernameQuery.empty) {
@@ -938,7 +971,10 @@
                     username: username,
                     createdAt: firebase.firestore.FieldValue.serverTimestamp()
                 });
+
+                console.log('✅ Account created successfully!');
             } catch (error) {
+                console.error('Sign up error:', error);
                 errorDiv.textContent = error.message;
                 errorDiv.classList.remove('hidden');
             }
@@ -1144,6 +1180,135 @@
             }
         }
 
+        // VIDEO CALL FUNCTIONS - NO SIGNUP NEEDED!
+        function startVideoCall() {
+            if (!selectedFriend) {
+                alert('Please select a friend first');
+                return;
+            }
+
+            // Create unique room name (sorted alphabetically for consistency)
+            const users = [currentUser.username, selectedFriend.friendUsername].sort();
+            const roomName = `call_${users[0]}_${users[1]}`.replace(/\s/g, '_');
+            
+            console.log('🎥 Starting video call:', roomName);
+            
+            // Show video container
+            document.getElementById('jitsi-container').style.display = 'block';
+            
+            // Initialize Jitsi Meet
+            jitsiApi = new JitsiMeetExternalAPI("meet.jit.si", {
+                roomName: roomName,
+                parentNode: document.querySelector('#jitsi-meet'),
+                width: '100%',
+                height: '100%',
+                configOverrides: {
+                    startWithAudioMuted: false,
+                    startWithVideoMuted: false,
+                    prejoinPageEnabled: false, // Skip waiting room
+                    disableDeepLinking: true
+                },
+                interfaceConfigOverrides: {
+                    TOOLBAR_BUTTONS: [
+                        'microphone', 'camera', 'closedcaptions', 'desktop',
+                        'fullscreen', 'fodeviceselection', 'hangup', 'chat',
+                        'settings', 'videoquality', 'filmstrip', 'tileview'
+                    ],
+                    SHOW_JITSI_WATERMARK: false,
+                    SHOW_WATERMARK_FOR_GUESTS: false,
+                    MOBILE_APP_PROMO: false,
+                    DISPLAY_WELCOME_PAGE_CONTENT: false
+                },
+                userInfo: {
+                    displayName: currentUser.username
+                }
+            });
+
+            // Listen for call end
+            jitsiApi.addEventListener('readyToClose', () => {
+                endVideoCall();
+            });
+
+            // Send call notification via Firebase
+            db.collection('messages').add({
+                from: currentUser.username,
+                to: selectedFriend.friendUsername,
+                text: `📹 Video call started. Room: ${roomName}`,
+                type: 'call_notification',
+                roomName: roomName,
+                timestamp: firebase.firestore.FieldValue.serverTimestamp()
+            }).catch(err => console.error('Failed to send call notification:', err));
+        }
+
+        function startGroupVideoCall() {
+            if (!selectedGroup) {
+                alert('Please select a group first');
+                return;
+            }
+
+            // Create unique room name for group
+            const roomName = `group_${selectedGroup.id}_${selectedGroup.name}`.replace(/\s/g, '_');
+            
+            console.log('🎥 Starting group video call:', roomName);
+            
+            // Show video container
+            document.getElementById('jitsi-container').style.display = 'block';
+            
+            // Initialize Jitsi Meet
+            jitsiApi = new JitsiMeetExternalAPI("meet.jit.si", {
+                roomName: roomName,
+                parentNode: document.querySelector('#jitsi-meet'),
+                width: '100%',
+                height: '100%',
+                configOverrides: {
+                    startWithAudioMuted: false,
+                    startWithVideoMuted: false,
+                    prejoinPageEnabled: false,
+                    disableDeepLinking: true
+                },
+                interfaceConfigOverrides: {
+                    TOOLBAR_BUTTONS: [
+                        'microphone', 'camera', 'closedcaptions', 'desktop',
+                        'fullscreen', 'fodeviceselection', 'hangup', 'chat',
+                        'settings', 'videoquality', 'filmstrip', 'tileview'
+                    ],
+                    SHOW_JITSI_WATERMARK: false,
+                    SHOW_WATERMARK_FOR_GUESTS: false,
+                    MOBILE_APP_PROMO: false,
+                    DISPLAY_WELCOME_PAGE_CONTENT: false
+                },
+                userInfo: {
+                    displayName: currentUser.username
+                }
+            });
+
+            // Listen for call end
+            jitsiApi.addEventListener('readyToClose', () => {
+                endVideoCall();
+            });
+
+            // Send group call notification
+            db.collection('messages').add({
+                from: currentUser.username,
+                groupId: selectedGroup.id,
+                text: `📹 ${currentUser.username} started a video call. Room: ${roomName}`,
+                type: 'group_call_notification',
+                roomName: roomName,
+                timestamp: firebase.firestore.FieldValue.serverTimestamp()
+            }).catch(err => console.error('Failed to send call notification:', err));
+        }
+
+        function endVideoCall() {
+            console.log('📴 Ending video call');
+            
+            if (jitsiApi) {
+                jitsiApi.dispose();
+                jitsiApi = null;
+            }
+            
+            document.getElementById('jitsi-container').style.display = 'none';
+        }
+
         // Friend functions
         async function showAddFriend() {
             const username = prompt('Enter username to add:');
@@ -1275,7 +1440,8 @@
                     }
                 }
                 return;
-        }
+            }
+
             try {
                 await db.collection('groups').doc(selectedGroup.id).update({
                     name: newName
@@ -1701,7 +1867,7 @@
                         render();
                     });
                 
-                // Listen to all messages (will be filtered in render functions)
+                // Listen to all messages
                 db.collection('messages').onSnapshot(snapshot => {
                     messages = snapshot.docs.map(doc => ({
                         id: doc.id,
