@@ -23,25 +23,23 @@
             appId: "1:1089455460888:web:d0c8dea185ba6769ebe96d"
         };
 
-        // Initialize Firebase
         firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
         const db = firebase.firestore();
 
-        // Cloudinary Configuration
         const CLOUDINARY_CLOUD_NAME = 'dzxckgbzp';
         const CLOUDINARY_UPLOAD_PRESET = 'godswillscorechat';
         const CLOUDINARY_UPLOAD_URL = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`;
 
-        // App State
         let currentUser = null;
         let currentView = 'auth';
         let selectedFriend = null;
+        let selectedGroup = null;
         let messages = [];
         let friends = [];
-        let allUsers = [];
+        let groups = [];
+        let friendRequests = [];
 
-        // Icons (using Unicode)
         const icons = {
             camera: '📷',
             send: '📤',
@@ -53,7 +51,6 @@
             fire: '🔥'
         };
 
-        // Render Functions
         function render() {
             const app = document.getElementById('app');
             if (!currentUser) {
@@ -62,8 +59,13 @@
                 app.innerHTML = renderHome();
             } else if (currentView === 'chat') {
                 app.innerHTML = renderChat();
+            } else if (currentView === 'requests') {
+                app.innerHTML = renderFriendRequests();
+            } else if (currentView === 'groups') {
+                app.innerHTML = renderGroups();
+            } else if (currentView === 'groupChat') {
+                app.innerHTML = renderGroupChat();
             }
-            attachEventListeners();
         }
 
         function renderAuth() {
@@ -73,11 +75,11 @@
                         <h1 class="text-4xl font-bold mb-2 text-yellow-500 text-center">Godswillscorechat🗨</h1>
                         <p class="text-gray-600 mb-6 text-center">Share moments with real people</p>
                         
-                        <div id="authForm" class="space-y-4">
+                        <div class="space-y-4">
                             <input type="text" id="username" placeholder="Username" 
-                                class="w-full px-4 py-3 border rounded-full focus:outline-none focus:ring-2 focus:ring-yellow-500" required>
+                                class="w-full px-4 py-3 border rounded-full focus:outline-none focus:ring-2 focus:ring-yellow-500">
                             <input type="password" id="password" placeholder="Password" 
-                                class="w-full px-4 py-3 border rounded-full focus:outline-none focus:ring-2 focus:ring-yellow-500" required>
+                                class="w-full px-4 py-3 border rounded-full focus:outline-none focus:ring-2 focus:ring-yellow-500">
                             
                             <div id="authError" class="text-red-500 text-sm text-center hidden"></div>
                             
@@ -94,8 +96,8 @@
                         <div class="mt-6 p-4 bg-yellow-50 rounded-xl">
                             <p class="text-xs text-gray-600">
                                 <strong>✅ Real-time Chat</strong><br/>
-                                • Firebase & Cloudinary<br/>
-                                • Message real people instantly
+                                • Friend requests & Groups<br/>
+                                • Firebase & Cloudinary
                             </p>
                         </div>
                     </div>
@@ -104,8 +106,10 @@
         }
 
         function renderHome() {
+            const pendingRequestsCount = friendRequests.filter(r => r.to === currentUser.username && r.status === 'pending').length;
+            
             const friendsHtml = friends.length === 0 
-                ? '<div class="text-center py-8 text-gray-500"><p>No friends yet. Add some friends to start chatting!</p></div>'
+                ? '<div class="text-center py-8 text-gray-500"><p>No friends yet. Send friend requests to start chatting!</p></div>'
                 : friends.map(friend => `
                     <div onclick="openChat('${friend.id}')" 
                         class="bg-white p-4 rounded-xl shadow hover:shadow-md transition cursor-pointer">
@@ -127,12 +131,31 @@
                     </div>
                 `).join('');
 
+            const groupsHtml = groups.slice(0, 3).map(group => `
+                <div onclick="openGroupChat('${group.id}')" 
+                    class="bg-white p-4 rounded-xl shadow hover:shadow-md transition cursor-pointer">
+                    <div class="flex items-center gap-3">
+                        <div class="w-12 h-12 rounded-full bg-gradient-to-br from-purple-400 to-purple-600 flex items-center justify-center text-white text-2xl">
+                            👥
+                        </div>
+                        <div>
+                            <p class="font-semibold">${group.name}</p>
+                            <p class="text-sm text-gray-500">${group.members.length} members</p>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+
             return `
                 <div class="flex flex-col h-screen bg-gray-100">
                     <div class="bg-yellow-500 text-white p-4 shadow-lg">
                         <div class="flex items-center justify-between max-w-6xl mx-auto">
                             <h1 class="text-2xl font-bold">Godswillscorechat🗨</h1>
                             <div class="flex items-center gap-4">
+                                <button onclick="showFriendRequests()" class="relative p-2 bg-yellow-600 rounded-full hover:bg-yellow-700 transition">
+                                    📬
+                                    ${pendingRequestsCount > 0 ? `<span class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">${pendingRequestsCount}</span>` : ''}
+                                </button>
                                 <span class="text-sm font-semibold">@${currentUser.username}</span>
                                 <button onclick="handleLogout()" 
                                     class="p-2 bg-yellow-600 rounded-full hover:bg-yellow-700 transition">
@@ -155,6 +178,18 @@
                             </div>
                         </div>
 
+                        ${groups.length > 0 ? `
+                        <div class="mb-6">
+                            <div class="flex items-center justify-between mb-3">
+                                <h2 class="text-xl font-bold">Groups</h2>
+                                <button onclick="showAllGroups()" class="text-yellow-500 text-sm hover:underline">
+                                    View All
+                                </button>
+                            </div>
+                            ${groupsHtml}
+                        </div>
+                        ` : ''}
+
                         <div>
                             <div class="flex items-center justify-between mb-3">
                                 <h2 class="text-xl font-bold">Friends</h2>
@@ -171,6 +206,9 @@
                         <div class="flex justify-around max-w-6xl mx-auto">
                             <button onclick="goHome()" class="p-3 rounded-full bg-yellow-100">
                                 <span class="text-2xl">${icons.home}</span>
+                            </button>
+                            <button onclick="showAllGroups()" class="p-3 rounded-full">
+                                <span class="text-2xl">👥</span>
                             </button>
                             <button onclick="captureImage()" class="p-3 rounded-full">
                                 <span class="text-2xl">${icons.camera}</span>
@@ -254,7 +292,165 @@
             `;
         }
 
-        // Event Handlers
+        function renderFriendRequests() {
+            const pendingRequests = friendRequests.filter(r => r.to === currentUser.username && r.status === 'pending');
+            
+            const requestsHtml = pendingRequests.length === 0
+                ? '<div class="text-center py-8 text-gray-500"><p>No pending friend requests</p></div>'
+                : pendingRequests.map(request => `
+                    <div class="bg-white p-4 rounded-xl shadow">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-3">
+                                <div class="w-12 h-12 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white text-2xl">
+                                    ${icons.user}
+                                </div>
+                                <div>
+                                    <p class="font-semibold">@${request.from}</p>
+                                    <p class="text-sm text-gray-500">wants to be friends</p>
+                                </div>
+                            </div>
+                            <div class="flex gap-2">
+                                <button onclick="acceptFriendRequest('${request.id}', '${request.from}')" 
+                                    class="bg-yellow-500 text-white px-4 py-2 rounded-full text-sm hover:bg-yellow-600">
+                                    Accept
+                                </button>
+                                <button onclick="rejectFriendRequest('${request.id}')" 
+                                    class="bg-gray-200 text-gray-700 px-4 py-2 rounded-full text-sm hover:bg-gray-300">
+                                    Decline
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+
+            return `
+                <div class="flex flex-col h-screen bg-gray-100">
+                    <div class="bg-white p-4 shadow flex items-center gap-3">
+                        <button onclick="goHome()" class="text-gray-600 hover:text-gray-800 text-2xl">
+                            ${icons.close}
+                        </button>
+                        <h2 class="text-xl font-bold">Friend Requests</h2>
+                    </div>
+
+                    <div class="flex-1 overflow-y-auto p-4 space-y-3">
+                        ${requestsHtml}
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderGroups() {
+            const groupsHtml = groups.length === 0
+                ? '<div class="text-center py-8 text-gray-500"><p>No groups yet. Create one to start!</p></div>'
+                : groups.map(group => `
+                    <div onclick="openGroupChat('${group.id}')" 
+                        class="bg-white p-4 rounded-xl shadow hover:shadow-md transition cursor-pointer">
+                        <div class="flex items-center gap-3">
+                            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-purple-400 to-purple-600 flex items-center justify-center text-white text-2xl">
+                                👥
+                            </div>
+                            <div>
+                                <p class="font-semibold">${group.name}</p>
+                                <p class="text-sm text-gray-500">${group.members.length} members</p>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+
+            return `
+                <div class="flex flex-col h-screen bg-gray-100">
+                    <div class="bg-white p-4 shadow flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                            <button onclick="goHome()" class="text-gray-600 hover:text-gray-800 text-2xl">
+                                ${icons.close}
+                            </button>
+                            <h2 class="text-xl font-bold">Groups</h2>
+                        </div>
+                        <button onclick="createGroup()" 
+                            class="bg-yellow-500 text-white px-4 py-2 rounded-full text-sm hover:bg-yellow-600">
+                            ${icons.plus} Create Group
+                        </button>
+                    </div>
+
+                    <div class="flex-1 overflow-y-auto p-4 space-y-3">
+                        ${groupsHtml}
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderGroupChat() {
+            if (!selectedGroup) return '';
+
+            const chatMessages = messages
+                .filter(m => m.groupId === selectedGroup.id)
+                .sort((a, b) => (a.timestamp?.seconds || 0) - (b.timestamp?.seconds || 0));
+
+            const messagesHtml = chatMessages.map(msg => {
+                const isFromMe = msg.from === currentUser.username;
+                if (msg.imageUrl) {
+                    return `
+                        <div class="flex ${isFromMe ? 'justify-end' : 'justify-start'}">
+                            <div class="max-w-xs">
+                                ${!isFromMe ? `<p class="text-xs text-gray-500 mb-1">@${msg.from}</p>` : ''}
+                                <img src="${msg.imageUrl}" alt="Snap" class="rounded-2xl shadow-lg">
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    return `
+                        <div class="flex ${isFromMe ? 'justify-end' : 'justify-start'}">
+                            <div class="max-w-xs">
+                                ${!isFromMe ? `<p class="text-xs text-gray-500 mb-1">@${msg.from}</p>` : ''}
+                                <div class="p-3 rounded-2xl ${isFromMe ? 'bg-yellow-500 text-white' : 'bg-gray-200 text-gray-800'}">
+                                    <p>${msg.text}</p>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }
+            }).join('');
+
+            return `
+                <div class="flex flex-col h-screen bg-gray-100">
+                    <div class="bg-white p-4 shadow flex items-center gap-3">
+                        <button onclick="goHome()" class="text-gray-600 hover:text-gray-800 text-2xl">
+                            ${icons.close}
+                        </button>
+                        <div class="w-10 h-10 rounded-full bg-gradient-to-br from-purple-400 to-purple-600 flex items-center justify-center text-white text-xl">
+                            👥
+                        </div>
+                        <div>
+                            <p class="font-semibold">${selectedGroup.name}</p>
+                            <p class="text-xs text-gray-500">${selectedGroup.members.length} members</p>
+                        </div>
+                    </div>
+
+                    <div class="flex-1 overflow-y-auto p-4 space-y-3">
+                        ${messagesHtml || '<p class="text-center text-gray-500">No messages yet. Start the conversation!</p>'}
+                    </div>
+
+                    <div class="bg-white p-4 border-t">
+                        <div class="flex gap-2">
+                            <button onclick="captureImage()" 
+                                class="p-3 bg-yellow-500 text-white rounded-full hover:bg-yellow-600 text-xl">
+                                ${icons.camera}
+                            </button>
+                            <input type="text" id="messageInput" placeholder="Send a message..." 
+                                class="flex-1 px-4 py-2 border rounded-full focus:outline-none focus:ring-2 focus:ring-yellow-500"
+                                onkeypress="if(event.key==='Enter') sendGroupMessage()">
+                            <button onclick="sendGroupMessage()" 
+                                class="p-3 bg-yellow-500 text-white rounded-full hover:bg-yellow-600 text-xl">
+                                ${icons.send}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <input type="file" id="imageInput" accept="image/*" style="display:none;" onchange="handleImageSelect(event)">
+            `;
+        }
+
         async function handleSignUp() {
             const username = document.getElementById('username').value;
             const password = document.getElementById('password').value;
@@ -322,63 +518,129 @@
         function goHome() {
             currentView = 'home';
             selectedFriend = null;
+            selectedGroup = null;
+            render();
+        }
+
+        function showFriendRequests() {
+            currentView = 'requests';
+            render();
+        }
+
+        function showAllGroups() {
+            currentView = 'groups';
             render();
         }
 
         function openChat(friendId) {
             selectedFriend = friends.find(f => f.id === friendId);
+            selectedGroup = null;
             currentView = 'chat';
             render();
         }
 
-        function captureImage() {
-            document.getElementById('imageInput').click();
+        function openGroupChat(groupId) {
+            selectedGroup = groups.find(g => g.id === groupId);
+            selectedFriend = null;
+            currentView = 'groupChat';
+            render();
         }
 
-        async function handleImageSelect(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-
-            const reader = new FileReader();
-            reader.onload = async (e) => {
-                await uploadToCloudinary(e.target.result);
-            };
-            reader.readAsDataURL(file);
-        }
-
-        async function uploadToCloudinary(imageData) {
-            if (!selectedFriend) {
-                alert('Please select a friend first');
+        async function showAddFriend() {
+            const username = prompt('Enter username to add:');
+            if (!username) return;
+            
+            if (username === currentUser.username) {
+                alert('You cannot add yourself as a friend');
                 return;
             }
-
+            
             try {
-                const blob = await fetch(imageData).then(r => r.blob());
-                const formData = new FormData();
-                formData.append('file', blob);
-                formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
-                formData.append('folder', 'godswillscorechat');
-
-                const response = await fetch(CLOUDINARY_UPLOAD_URL, {
-                    method: 'POST',
-                    body: formData
-                });
-
-                const data = await response.json();
-
-                await db.collection('messages').add({
+                const userQuery = await db.collection('users').where('username', '==', username).get();
+                if (userQuery.empty) {
+                    alert('User not found');
+                    return;
+                }
+                
+                const existingFriend = friends.find(f => f.friendUsername === username);
+                if (existingFriend) {
+                    alert('You are already friends with this user');
+                    return;
+                }
+                
+                const existingRequest = friendRequests.find(r => 
+                    (r.from === currentUser.username && r.to === username && r.status === 'pending') ||
+                    (r.to === currentUser.username && r.from === username && r.status === 'pending')
+                );
+                if (existingRequest) {
+                    alert('A friend request already exists between you and this user');
+                    return;
+                }
+                
+                await db.collection('friendRequests').add({
                     from: currentUser.username,
-                    to: selectedFriend.friendUsername,
-                    imageUrl: data.secure_url,
-                    publicId: data.public_id,
-                    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-                    type: 'snap'
+                    to: username,
+                    status: 'pending',
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
                 });
-
-                alert('Snap sent! 🎉');
+                
+                alert('Friend request sent!');
             } catch (error) {
-                console.error('Upload error:', error);
-                alert('Failed to upload image');
+                console.error('Friend request error:', error);
+                alert('Failed to send friend request');
+            }
+        }
+
+        async function acceptFriendRequest(requestId, fromUsername) {
+            try {
+                await db.collection('friendRequests').doc(requestId).update({
+                    status: 'accepted'
+                });
+                
+                await db.collection('friends').add({
+                    user1: currentUser.username,
+                    user2: fromUsername,
+                    streak: 0,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                
+                alert('Friend request accepted!');
+                goHome();
+            } catch (error) {
+                console.error('Accept friend request error:', error);
+                alert('Failed to accept friend request');
+            }
+        }
+
+        async function rejectFriendRequest(requestId) {
+            try {
+                await db.collection('friendRequests').doc(requestId).update({
+                    status: 'rejected'
+                });
+                goHome();
+            } catch (error) {
+                console.error('Reject friend request error:', error);
+                alert('Failed to reject friend request');
+            }
+        }
+
+        async function createGroup() {
+            const groupName = prompt('Enter group name:');
+            if (!groupName) return;
+            
+            try {
+                await db.collection('groups').add({
+                    name: groupName,
+                    creator: currentUser.username,
+                    members: [currentUser.username],
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                
+                alert('Group created!');
+                showAllGroups();
+            } catch (error) {
+                console.error('Create group error:', error);
+                alert('Failed to create group');
             }
         }
 
@@ -396,88 +658,198 @@
                     timestamp: firebase.firestore.FieldValue.serverTimestamp(),
                     type: 'text'
                 });
-
+                
                 input.value = '';
             } catch (error) {
-                console.error('Send error:', error);
+                console.error('Send message error:', error);
                 alert('Failed to send message');
             }
         }
 
-        async function showAddFriend() {
-            const username = prompt('Enter username to add:');
-            if (!username) return;
+        async function sendGroupMessage() {
+            const input = document.getElementById('messageInput');
+            const text = input.value.trim();
+            
+            if (!text || !selectedGroup) return;
 
             try {
-                const userQuery = await db.collection('users').where('username', '==', username).get();
-                if (userQuery.empty) {
-                    alert('User not found');
-                    return;
-                }
-
-                await db.collection('friends').add({
-                    user: currentUser.username,
-                    friendUsername: username,
-                    streak: 0,
-                    addedAt: firebase.firestore.FieldValue.serverTimestamp()
+                await db.collection('messages').add({
+                    from: currentUser.username,
+                    groupId: selectedGroup.id,
+                    text: text,
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                    type: 'group_text'
                 });
-
-                alert('Friend added!');
+                
+                input.value = '';
             } catch (error) {
-                console.error('Add friend error:', error);
-                alert('Failed to add friend');
+                console.error('Send group message error:', error);
+                alert('Failed to send message');
             }
         }
 
-        function attachEventListeners() {
-            // Event listeners are inline in HTML
+        function captureImage() {
+            document.getElementById('imageInput').click();
         }
 
-        // Auth State Listener
-        auth.onAuthStateChanged(async (firebaseUser) => {
-            if (firebaseUser) {
-                const userDoc = await db.collection('users').where('uid', '==', firebaseUser.uid).get();
-                if (!userDoc.empty) {
-                    currentUser = userDoc.docs[0].data();
-                    currentView = 'home';
-                    loadFriends();
-                    loadMessages();
-                    render();
+        async function handleImageSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                await uploadToCloudinary(e.target.result);
+            };
+            reader.readAsDataURL(file);
+            event.target.value = '';
+        }
+
+        async function uploadToCloudinary(imageData) {
+            if (currentView === 'home') {
+                try {
+                    const blob = await fetch(imageData).then(r => r.blob());
+                    const formData = new FormData();
+                    formData.append('file', blob);
+                    formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+                    formData.append('folder', 'godswillscorechat/stories');
+
+                    const response = await fetch(CLOUDINARY_UPLOAD_URL, {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    const data = await response.json();
+
+                    await db.collection('stories').add({
+                        username: currentUser.username,
+                        imageUrl: data.secure_url,
+                        publicId: data.public_id,
+                        timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000)
+                    });
+
+                    alert('Story posted! 🎉');
+                } catch (error) {
+                    console.error('Upload error:', error);
+                    alert('Failed to upload story');
                 }
-            } else {
-                currentUser = null;
-                currentView = 'auth';
-                render();
+                return;
             }
-        });
 
-        // Load Friends
-        function loadFriends() {
-            db.collection('friends')
-                .where('user', '==', currentUser.username)
-                .onSnapshot(snapshot => {
-                    friends = snapshot.docs.map(doc => ({
-                        id: doc.id,
-                        ...doc.data()
-                    }));
-                    if (currentView === 'home') render();
+            if (!selectedFriend && !selectedGroup) {
+                alert('Please select a friend or group first');
+                return;
+            }
+
+            try {
+                const blob = await fetch(imageData).then(r => r.blob());
+                const formData = new FormData();
+                formData.append('file', blob);
+                formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+                formData.append('folder', 'godswillscorechat');
+
+                const response = await fetch(CLOUDINARY_UPLOAD_URL, {
+                    method: 'POST',
+                    body: formData
                 });
+
+                const data = await response.json();
+
+                if (selectedGroup) {
+                    await db.collection('messages').add({
+                        from: currentUser.username,
+                        groupId: selectedGroup.id,
+                        imageUrl: data.secure_url,
+                        publicId: data.public_id,
+                        timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                        type: 'group_snap'
+                    });
+                } else {
+                    await db.collection('messages').add({
+                        from: currentUser.username,
+                        to: selectedFriend.friendUsername,
+                        imageUrl: data.secure_url,
+                        publicId: data.public_id,
+                        timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                        type: 'snap'
+                    });
+                }
+
+                alert('Snap sent! 🎉');
+            } catch (error) {
+                console.error('Upload error:', error);
+                alert('Failed to upload image');
+            }
         }
 
-        // Load Messages
-        function loadMessages() {
-            db.collection('messages')
-                .orderBy('timestamp', 'desc')
-                .onSnapshot(snapshot => {
+        auth.onAuthStateChanged(async (user) => {
+            if (user) {
+                const userDoc = await db.collection('users').doc(user.uid).get();
+                currentUser = userDoc.data();
+                currentView = 'home';
+                
+                db.collection('friends')
+                    .where('user1', '==', currentUser.username)
+                    .onSnapshot(snapshot => {
+                        friends = snapshot.docs.map(doc => ({
+                            id: doc.id,
+                            friendUsername: doc.data().user2,
+                            streak: doc.data().streak || 0
+                        }));
+                        
+                        db.collection('friends')
+                            .where('user2', '==', currentUser.username)
+                            .onSnapshot(snapshot2 => {
+                                const moreFriends = snapshot2.docs.map(doc => ({
+                                    id: doc.id,
+                                    friendUsername: doc.data().user1,
+                                    streak: doc.data().streak || 0
+                                }));
+                                friends = [...friends, ...moreFriends];
+                                render();
+                            });
+                        
+                        render();
+                    });
+                
+                db.collection('messages').onSnapshot(snapshot => {
                     messages = snapshot.docs.map(doc => ({
                         id: doc.id,
                         ...doc.data()
                     }));
-                    if (currentView === 'chat') render();
+                    render();
                 });
-        }
+                
+                db.collection('friendRequests').onSnapshot(snapshot => {
+                    friendRequests = snapshot.docs.map(doc => ({
+                        id: doc.id,
+                        ...doc.data()
+                    }));
+                    render();
+                });
+                
+                db.collection('groups')
+                    .where('members', 'array-contains', currentUser.username)
+                    .onSnapshot(snapshot => {
+                        groups = snapshot.docs.map(doc => ({
+                            id: doc.id,
+                            ...doc.data()
+                        }));
+                        render();
+                    });
+                
+                render();
+            } else {
+                currentUser = null;
+                currentView = 'auth';
+                friends = [];
+                messages = [];
+                groups = [];
+                friendRequests = [];
+                render();
+            }
+        });
 
-        // Initial render
         render();
     </script>
 </body>
