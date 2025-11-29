@@ -35,12 +35,15 @@
         let currentView = 'auth';
         let selectedFriend = null;
         let selectedGroup = null;
+        let selectedChannel = null;
         let messages = [];
         let friends = [];
         let groups = [];
         let friendRequests = [];
         let stories = [];
+        let channels = [];
         let allUsers = [];
+        let editingMessageId = null;
 
         const icons = {
             camera: '📷',
@@ -52,7 +55,13 @@
             logout: '🚪',
             fire: '🔥',
             check: '✓',
-            doubleCheck: '✓✓'
+            doubleCheck: '✓✓',
+            edit: '✏️',
+            delete: '🗑️',
+            eye: '👁️',
+            lock: '🔒',
+            globe: '🌍',
+            channel: '📢'
         };
 
         function render() {
@@ -73,6 +82,12 @@
                 app.innerHTML = renderCreateGroup();
             } else if (currentView === 'groupInfo') {
                 app.innerHTML = renderGroupInfo();
+            } else if (currentView === 'channels') {
+                app.innerHTML = renderChannels();
+            } else if (currentView === 'createChannel') {
+                app.innerHTML = renderCreateChannel();
+            } else if (currentView === 'channelView') {
+                app.innerHTML = renderChannelView();
             }
         }
 
@@ -103,10 +118,17 @@
                         
                         <div class="mt-6 p-4 bg-yellow-50 rounded-xl">
                             <p class="text-xs text-gray-600">
-                                <strong>✅ Real-time Chat</strong><br/>
-                                • Friend requests & Groups<br/>
-                                • Firebase & Cloudinary
+                                <strong>✅ Real-time Chat & Stories</strong><br/>
+                                • Private & Public Stories<br/>
+                                • Groups & Channels<br/>
+                                • Message Editing & More!
                             </p>
+                        </div>
+                        
+                        <div class="mt-4 text-center text-xs text-gray-500">
+                            <p><strong>Contact Creator:</strong></p>
+                            <p>📧 Ihechigodswill575@gmail.com</p>
+                            <p>👻 Snapchat: kizoelite2</p>
                         </div>
                     </div>
                 </div>
@@ -116,10 +138,17 @@
         function renderHome() {
             const pendingRequestsCount = friendRequests.filter(r => r.to === currentUser.username && r.status === 'pending').length;
             
+            // Filter messages to only show those involving current user
+            const userMessages = messages.filter(m => 
+                m.from === currentUser.username || 
+                m.to === currentUser.username ||
+                (m.groupId && groups.some(g => g.id === m.groupId && g.members.includes(currentUser.username)))
+            );
+            
             const friendsHtml = friends.length === 0 
                 ? '<div class="text-center py-8 text-gray-500"><p>No friends yet. Send friend requests to start chatting!</p></div>'
                 : friends.map(friend => {
-                    const friendMessages = messages.filter(m => 
+                    const friendMessages = userMessages.filter(m => 
                         (m.from === friend.friendUsername && m.to === currentUser.username) ||
                         (m.from === currentUser.username && m.to === friend.friendUsername)
                     ).sort((a, b) => (b.timestamp?.seconds || 0) - (a.timestamp?.seconds || 0));
@@ -154,7 +183,7 @@
                 `}).join('');
 
             const groupsHtml = groups.map(group => {
-                const groupMessages = messages.filter(m => m.groupId === group.id)
+                const groupMessages = userMessages.filter(m => m.groupId === group.id)
                     .sort((a, b) => (b.timestamp?.seconds || 0) - (a.timestamp?.seconds || 0));
                 
                 const lastMessage = groupMessages[0];
@@ -172,6 +201,7 @@
                             </div>
                             <div class="flex-1 min-w-0">
                                 <p class="font-semibold">${group.name}</p>
+                                ${group.bio ? `<p class="text-xs text-gray-400 truncate">${group.bio}</p>` : ''}
                                 <p class="text-sm text-gray-500 truncate">${lastMessageText}</p>
                             </div>
                         </div>
@@ -180,16 +210,30 @@
                 </div>
             `}).join('');
 
-            const storiesHtml = stories.map(story => {
+            // Filter stories: show public stories from everyone, private stories only from friends + own stories
+            const visibleStories = stories.filter(story => {
+                if (story.username === currentUser.username) return true;
+                if (story.isPublic) return true;
+                return friends.some(f => f.friendUsername === story.username);
+            });
+
+            const storiesHtml = visibleStories.map(story => {
                 const isMyStory = story.username === currentUser.username;
+                const viewCount = story.viewedBy ? story.viewedBy.length : 0;
                 return `
-                <button onclick="viewStory('${story.id}')" class="flex flex-col items-center flex-shrink-0">
+                <button onclick="viewStory('${story.id}')" class="flex flex-col items-center flex-shrink-0 relative">
                     <div class="w-16 h-16 rounded-full ${isMyStory ? 'bg-gradient-to-br from-yellow-400 to-yellow-600' : 'bg-gradient-to-br from-pink-400 to-purple-600'} p-0.5">
                         <img src="${story.imageUrl}" 
                             alt="Story by @${story.username}" 
                             class="w-full h-full rounded-full object-cover border-2 border-white">
                     </div>
+                    ${isMyStory && viewCount > 0 ? `
+                    <span class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                        ${viewCount}
+                    </span>
+                    ` : ''}
                     <span class="text-xs mt-1 max-w-[64px] truncate">${isMyStory ? 'My Story' : '@' + story.username}</span>
+                    ${!story.isPublic ? `<span class="text-xs">${icons.lock}</span>` : `<span class="text-xs">${icons.globe}</span>`}
                 </button>
             `}).join('');
 
@@ -213,7 +257,7 @@
                         </div>
                     </div>
 
-                    ${stories.length > 0 ? `
+                    ${visibleStories.length > 0 || stories.some(s => s.username === currentUser.username) ? `
                     <div class="bg-white border-b p-3">
                         <div class="flex gap-3 overflow-x-auto">
                             <button onclick="captureImage()" class="flex flex-col items-center flex-shrink-0">
@@ -238,6 +282,9 @@
                         </button>
                         <button onclick="showAllGroups()" class="p-3 text-gray-600">
                             <span class="text-2xl">👥</span>
+                        </button>
+                        <button onclick="showChannels()" class="p-3 text-gray-600">
+                            <span class="text-2xl">${icons.channel}</span>
                         </button>
                         <button onclick="showAddFriend()" class="p-3 text-gray-600">
                             <span class="text-2xl">➕</span>
@@ -273,24 +320,39 @@
                 
                 if (msg.imageUrl) {
                     return `
-                        <div class="flex ${isFromMe ? 'justify-end' : 'justify-start'} mb-1">
+                        <div class="flex ${isFromMe ? 'justify-end' : 'justify-start'} mb-1 group">
                             <div class="max-w-[70%] relative">
                                 <img src="${msg.imageUrl}" alt="Photo" class="rounded-lg shadow w-full">
                                 <span class="absolute bottom-1 right-2 text-xs text-white bg-black bg-opacity-50 px-2 py-0.5 rounded">
                                     ${time} ${isFromMe ? icons.doubleCheck : ''}
                                 </span>
+                                ${isFromMe ? `
+                                <button onclick="deleteMessage('${msg.id}')" class="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition">
+                                    ${icons.delete}
+                                </button>
+                                ` : ''}
                             </div>
                         </div>
                     `;
                 } else {
                     return `
-                        <div class="flex ${isFromMe ? 'justify-end' : 'justify-start'} mb-1">
-                            <div class="max-w-[70%] px-3 py-2 rounded-lg shadow-sm ${isFromMe ? 'bg-green-100 rounded-br-none' : 'bg-white rounded-bl-none'}">
+                        <div class="flex ${isFromMe ? 'justify-end' : 'justify-start'} mb-1 group">
+                            <div class="max-w-[70%] px-3 py-2 rounded-lg shadow-sm ${isFromMe ? 'bg-green-100 rounded-br-none' : 'bg-white rounded-bl-none'} relative">
                                 <p class="text-sm break-words">${msg.text}</p>
                                 <div class="flex items-center justify-end gap-1 mt-1">
                                     <span class="text-xs text-gray-500">${time}</span>
                                     ${isFromMe ? `<span class="text-xs text-blue-500">${icons.doubleCheck}</span>` : ''}
                                 </div>
+                                ${isFromMe ? `
+                                <div class="absolute -right-16 top-0 opacity-0 group-hover:opacity-100 transition flex gap-1">
+                                    <button onclick="startEditMessage('${msg.id}', \`${msg.text.replace(/`/g, '\\`')}\`)" class="bg-blue-500 text-white p-1 rounded text-xs">
+                                        ${icons.edit}
+                                    </button>
+                                    <button onclick="deleteMessage('${msg.id}')" class="bg-red-500 text-white p-1 rounded text-xs">
+                                        ${icons.delete}
+                                    </button>
+                                </div>
+                                ` : ''}
                             </div>
                         </div>
                     `;
@@ -317,15 +379,21 @@
                     </div>
 
                     <div class="bg-gray-100 p-2 border-t">
+                        ${editingMessageId ? `
+                        <div class="bg-blue-100 p-2 rounded-lg mb-2 flex items-center justify-between">
+                            <span class="text-sm text-blue-800">Editing message...</span>
+                            <button onclick="cancelEditMessage()" class="text-blue-800 font-bold">Cancel</button>
+                        </div>
+                        ` : ''}
                         <div class="flex gap-2 items-center">
                             <button onclick="captureImage()" 
                                 class="p-2 text-gray-600 hover:text-gray-800 text-2xl">
                                 ${icons.camera}
                             </button>
-                            <input type="text" id="messageInput" placeholder="Message" 
+                            <input type="text" id="messageInput" placeholder="${editingMessageId ? 'Edit message...' : 'Message'}" 
                                 class="flex-1 px-4 py-2 rounded-full bg-white border focus:outline-none focus:ring-2 focus:ring-green-500"
-                                onkeypress="if(event.key==='Enter') sendMessage()">
-                            <button onclick="sendMessage()" 
+                                onkeypress="if(event.key==='Enter') ${editingMessageId ? 'saveEditMessage()' : 'sendMessage()'}">
+                            <button onclick="${editingMessageId ? 'saveEditMessage()' : 'sendMessage()'}" 
                                 class="p-2 bg-green-600 text-white rounded-full hover:bg-green-700">
                                 ${icons.send}
                             </button>
@@ -350,26 +418,41 @@
                 
                 if (msg.imageUrl) {
                     return `
-                        <div class="flex ${isFromMe ? 'justify-end' : 'justify-start'} mb-1">
+                        <div class="flex ${isFromMe ? 'justify-end' : 'justify-start'} mb-1 group">
                             <div class="max-w-[70%] relative">
                                 ${!isFromMe ? `<p class="text-xs font-semibold mb-1" style="color: ${getColorForUser(msg.from)}">~${msg.from}</p>` : ''}
                                 <img src="${msg.imageUrl}" alt="Photo" class="rounded-lg shadow w-full">
                                 <span class="absolute bottom-1 right-2 text-xs text-white bg-black bg-opacity-50 px-2 py-0.5 rounded">
                                     ${time} ${isFromMe ? icons.doubleCheck : ''}
                                 </span>
+                                ${isFromMe ? `
+                                <button onclick="deleteMessage('${msg.id}')" class="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition">
+                                    ${icons.delete}
+                                </button>
+                                ` : ''}
                             </div>
                         </div>
                     `;
                 } else {
                     return `
-                        <div class="flex ${isFromMe ? 'justify-end' : 'justify-start'} mb-1">
-                            <div class="max-w-[70%] px-3 py-2 rounded-lg shadow-sm ${isFromMe ? 'bg-green-100 rounded-br-none' : 'bg-white rounded-bl-none'}">
+                        <div class="flex ${isFromMe ? 'justify-end' : 'justify-start'} mb-1 group">
+                            <div class="max-w-[70%] px-3 py-2 rounded-lg shadow-sm ${isFromMe ? 'bg-green-100 rounded-br-none' : 'bg-white rounded-bl-none'} relative">
                                 ${!isFromMe ? `<p class="text-xs font-semibold mb-1" style="color: ${getColorForUser(msg.from)}">~${msg.from}</p>` : ''}
                                 <p class="text-sm break-words">${msg.text}</p>
                                 <div class="flex items-center justify-end gap-1 mt-1">
                                     <span class="text-xs text-gray-500">${time}</span>
                                     ${isFromMe ? `<span class="text-xs text-blue-500">${icons.doubleCheck}</span>` : ''}
                                 </div>
+                                ${isFromMe ? `
+                                <div class="absolute -right-16 top-0 opacity-0 group-hover:opacity-100 transition flex gap-1">
+                                    <button onclick="startEditMessage('${msg.id}', \`${msg.text.replace(/`/g, '\\`')}\`)" class="bg-blue-500 text-white p-1 rounded text-xs">
+                                        ${icons.edit}
+                                    </button>
+                                    <button onclick="deleteMessage('${msg.id}')" class="bg-red-500 text-white p-1 rounded text-xs">
+                                        ${icons.delete}
+                                    </button>
+                                </div>
+                                ` : ''}
                             </div>
                         </div>
                     `;
@@ -387,7 +470,8 @@
                         </div>
                         <div class="flex-1" onclick="showGroupInfo()">
                             <p class="font-semibold">${selectedGroup.name}</p>
-                            <p class="text-xs text-green-100">${selectedGroup.members.join(', ')}</p>
+                            ${selectedGroup.bio ? `<p class="text-xs text-green-100 truncate">${selectedGroup.bio}</p>` : ''}
+                            <p class="text-xs text-green-100">${selectedGroup.members.length} members</p>
                         </div>
                     </div>
 
@@ -396,15 +480,21 @@
                     </div>
 
                     <div class="bg-gray-100 p-2 border-t">
+                        ${editingMessageId ? `
+                        <div class="bg-blue-100 p-2 rounded-lg mb-2 flex items-center justify-between">
+                            <span class="text-sm text-blue-800">Editing message...</span>
+                            <button onclick="cancelEditMessage()" class="text-blue-800 font-bold">Cancel</button>
+                        </div>
+                        ` : ''}
                         <div class="flex gap-2 items-center">
                             <button onclick="captureImage()" 
                                 class="p-2 text-gray-600 hover:text-gray-800 text-2xl">
                                 ${icons.camera}
                             </button>
-                            <input type="text" id="messageInput" placeholder="Message" 
+                            <input type="text" id="messageInput" placeholder="${editingMessageId ? 'Edit message...' : 'Message'}" 
                                 class="flex-1 px-4 py-2 rounded-full bg-white border focus:outline-none focus:ring-2 focus:ring-green-500"
-                                onkeypress="if(event.key==='Enter') sendGroupMessage()">
-                            <button onclick="sendGroupMessage()" 
+                                onkeypress="if(event.key==='Enter') ${editingMessageId ? 'saveEditMessage()' : 'sendGroupMessage()'}">
+                            <button onclick="${editingMessageId ? 'saveEditMessage()' : 'sendGroupMessage()'}" 
                                 class="p-2 bg-green-600 text-white rounded-full hover:bg-green-700">
                                 ${icons.send}
                             </button>
@@ -419,7 +509,8 @@
         function renderFriendRequests() {
             const pendingRequests = friendRequests.filter(r => r.to === currentUser.username && r.status === 'pending');
             
-            const requestsHtml = pendingRequests.length === 0
+            const request
+            pendingRequests.length === 0
                 ? '<div class="text-center py-8 text-gray-500"><p>No pending friend requests</p></div>'
                 : pendingRequests.map(request => `
                     <div class="bg-white p-4 border-b">
@@ -475,6 +566,7 @@
                             </div>
                             <div>
                                 <p class="font-semibold">${group.name}</p>
+                                ${group.bio ? `<p class="text-xs text-gray-400">${group.bio}</p>` : ''}
                                 <p class="text-sm text-gray-500">${group.members.length} members</p>
                             </div>
                         </div>
@@ -526,7 +618,9 @@
                             <h2 class="text-xl font-semibold">New Group</h2>
                         </div>
                         <input type="text" id="groupNameInput" placeholder="Group name" 
-                            class="w-full px-4 py-2 rounded-lg text-gray-900 focus:outline-none">
+                            class="w-full px-4 py-2 rounded-lg text-gray-900 focus:outline-none mb-2">
+                        <textarea id="groupBioInput" placeholder="Group bio (optional)" 
+                            class="w-full px-4 py-2 rounded-lg text-gray-900 focus:outline-none resize-none" rows="2"></textarea>
                     </div>
 
                     <div class="flex-1 overflow-y-auto">
@@ -549,12 +643,13 @@
         function renderGroupInfo() {
             if (!selectedGroup) return '';
 
+            const isAdmin = currentUser.username === selectedGroup.creator;
+
             const membersHtml = selectedGroup.members.map(member => {
                 const isCreator = member === selectedGroup.creator;
                 const isMe = member === currentUser.username;
                 return `
                 <div class="flex items-center justify-between p-3 bg-white border-b">
-                    <div class="flex items-center gap
                     <div class="flex items-center gap-3">
                         <div class="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white">
                             ${icons.user}
@@ -564,7 +659,7 @@
                             ${isCreator ? '<p class="text-xs text-green-600">Group Admin</p>' : ''}
                         </div>
                     </div>
-                    ${!isMe && currentUser.username === selectedGroup.creator ? `
+                    ${!isMe && isAdmin ? `
                     <button onclick="removeGroupMember('${member}')" class="text-red-500 text-sm">
                         Remove
                     </button>
@@ -588,14 +683,20 @@
                             👥
                         </div>
                         <h3 class="text-xl font-bold">${selectedGroup.name}</h3>
-                        <p class="text-sm text-gray-500">Group · ${selectedGroup.members.length} members</p>
+                        ${selectedGroup.bio ? `<p class="text-sm text-gray-600 mt-1">${selectedGroup.bio}</p>` : ''}
+                        <p class="text-sm text-gray-500 mt-1">Group · ${selectedGroup.members.length} members</p>
+                        ${isAdmin ? `
+                        <button onclick="editGroupInfo()" class="mt-3 text-green-600 text-sm font-semibold">
+                            ${icons.edit} Edit Group Info
+                        </button>
+                        ` : ''}
                     </div>
 
                     <div class="flex-1 overflow-y-auto">
                         <p class="p-3 text-sm font-semibold text-gray-600 bg-gray-100">${selectedGroup.members.length} members</p>
                         ${membersHtml}
                         
-                        ${currentUser.username === selectedGroup.creator ? `
+                        ${isAdmin ? `
                         <button onclick="showAddGroupMembers()" class="w-full p-4 bg-white border-b text-green-600 hover:bg-gray-50 text-left">
                             <span class="text-2xl mr-3">${icons.plus}</span>
                             Add members
@@ -603,7 +704,7 @@
                         ` : ''}
                     </div>
 
-                    ${currentUser.username === selectedGroup.creator ? `
+                    ${isAdmin ? `
                     <div class="bg-white p-4 border-t">
                         <button onclick="deleteGroup()" class="w-full text-red-500 font-semibold">
                             Delete Group
@@ -620,15 +721,181 @@
             `;
         }
 
+        function renderChannels() {
+            const channelsHtml = channels.length === 0
+                ? '<div class="text-center py-8 text-gray-500"><p>No channels yet. Create one!</p></div>'
+                : channels.map(channel => {
+                    const isFollowing = channel.followers && channel.followers.includes(currentUser.username);
+                    return `
+                    <div class="bg-white p-4 border-b hover:bg-gray-50 transition">
+                        <div class="flex items-center justify-between">
+                            <div onclick="viewChannel('${channel.id}')" class="flex items-center gap-3 flex-1 cursor-pointer">
+                                <div class="w-12 h-12 rounded-full bg-gradient-to-br from-purple-400 to-purple-600 flex items-center justify-center text-white text-2xl">
+                                    ${icons.channel}
+                                </div>
+                                <div>
+                                    <p class="font-semibold">${channel.name}</p>
+                                    ${channel.description ? `<p class="text-xs text-gray-500">${channel.description}</p>` : ''}
+                                    <p class="text-xs text-gray-400">${channel.followers ? channel.followers.length : 0} followers</p>
+                                </div>
+                            </div>
+                            ${channel.creator !== currentUser.username ? `
+                            <button onclick="toggleFollowChannel('${channel.id}')" 
+                                class="${isFollowing ? 'bg-gray-200 text-gray-700' : 'bg-green-600 text-white'} px-4 py-2 rounded-full text-sm hover:opacity-80">
+                                ${isFollowing ? 'Following' : 'Follow'}
+                            </button>
+                            ` : ''}
+                        </div>
+                    </div>
+                `}).join('');
+
+            return `
+                <div class="flex flex-col h-screen bg-gray-50">
+                    <div class="bg-purple-600 text-white p-4 shadow">
+                        <div class="flex items-center justify-between mb-3">
+                            <div class="flex items-center gap-3">
+                                <button onclick="goHome()" class="text-white text-2xl">
+                                    ←
+                                </button>
+                                <h2 class="text-xl font-semibold">Channels</h2>
+                            </div>
+                            <button onclick="showCreateChannel()" 
+                                class="bg-purple-700 text-white p-2 rounded-full hover:bg-purple-800">
+                                ${icons.plus}
+                            </button>
+                        </div>
+                        <input type="text" id="channelSearch" placeholder="Search channels..." 
+                            oninput="filterChannels(this.value)"
+                            class="w-full px-4 py-2 rounded-full text-gray-900 focus:outline-none">
+                    </div>
+
+                    <div id="channelsList" class="flex-1 overflow-y-auto">
+                        ${channelsHtml}
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderCreateChannel() {
+            return `
+                <div class="flex flex-col h-screen bg-gray-50">
+                    <div class="bg-purple-600 text-white p-4 shadow">
+                        <div class="flex items-center gap-3">
+                            <button onclick="showChannels()" class="text-white text-2xl">
+                                ←
+                            </button>
+                            <h2 class="text-xl font-semibold">New Channel</h2>
+                        </div>
+                    </div>
+
+                    <div class="flex-1 p-4">
+                        <div class="bg-white rounded-lg p-6 shadow">
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="block text-sm font-semibold text-gray-700 mb-2">Channel Name</label>
+                                    <input type="text" id="channelNameInput" placeholder="Enter channel name" 
+                                        class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-semibold text-gray-700 mb-2">Description</label>
+                                    <textarea id="channelDescInput" placeholder="Describe your channel" 
+                                        class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none" rows="3"></textarea>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white p-4 border-t">
+                        <button onclick="createChannel()" 
+                            class="w-full bg-purple-600 text-white py-3 rounded-full font-semibold hover:bg-purple-700">
+                            Create Channel
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderChannelView() {
+            if (!selectedChannel) return '';
+
+            const isCreator = selectedChannel.creator === currentUser.username;
+            const isFollowing = selectedChannel.followers && selectedChannel.followers.includes(currentUser.username);
+
+            const channelPosts = messages
+                .filter(m => m.channelId === selectedChannel.id)
+                .sort((a, b) => (b.timestamp?.seconds || 0) - (a.timestamp?.seconds || 0));
+
+            const postsHtml = channelPosts.length === 0
+                ? '<div class="text-center py-8 text-gray-500"><p>No posts yet</p></div>'
+                : channelPosts.map(post => {
+                    const time = formatTime(post.timestamp);
+                    return `
+                    <div class="bg-white p-4 border-b">
+                        ${post.imageUrl ? `
+                        <img src="${post.imageUrl}" alt="Post" class="w-full rounded-lg mb-2">
+                        ` : ''}
+                        ${post.text ? `<p class="text-sm mb-2">${post.text}</p>` : ''}
+                        <p class="text-xs text-gray-400">${time}</p>
+                    </div>
+                `}).join('');
+
+            return `
+                <div class="flex flex-col h-screen bg-gray-50">
+                    <div class="bg-purple-600 text-white p-4 shadow">
+                        <div class="flex items-center gap-3">
+                            <button onclick="showChannels()" class="text-white text-2xl">
+                                ←
+                            </button>
+                            <div class="flex-1">
+                                <p class="font-semibold">${selectedChannel.name}</p>
+                                ${selectedChannel.description ? `<p class="text-xs text-purple-100">${selectedChannel.description}</p>` : ''}
+                                <p class="text-xs text-purple-100">${selectedChannel.followers ? selectedChannel.followers.length : 0} followers</p>
+                            </div>
+                            ${!isCreator ? `
+                            <button onclick="toggleFollowChannel('${selectedChannel.id}')" 
+                                class="${isFollowing ? 'bg-purple-700' : 'bg-white text-purple-600'} px-4 py-2 rounded-full text-sm font-semibold">
+                                ${isFollowing ? 'Following' : 'Follow'}
+                            </button>
+                            ` : ''}
+                        </div>
+                    </div>
+
+                    <div class="flex-1 overflow-y-auto">
+                        ${postsHtml}
+                    </div>
+
+                    ${isCreator ? `
+                    <div class="bg-gray-100 p-2 border-t">
+                        <div class="flex gap-2 items-center">
+                            <button onclick="captureImage()" 
+                                class="p-2 text-gray-600 hover:text-gray-800 text-2xl">
+                                ${icons.camera}
+                            </button>
+                            <input type="text" id="channelPostInput" placeholder="Share with followers..." 
+                                class="flex-1 px-4 py-2 rounded-full bg-white border focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                onkeypress="if(event.key==='Enter') postToChannel()">
+                            <button onclick="postToChannel()" 
+                                class="p-2 bg-purple-600 text-white rounded-full hover:bg-purple-700">
+                                ${icons.send}
+                            </button>
+                        </div>
+                    </div>
+                    ` : ''}
+                </div>
+
+                <input type="file" id="imageInput" accept="image/*" style="display:none;" onchange="handleImageSelect(event)">
+            `;
+        }
+
         function formatTime(timestamp) {
             if (!timestamp) return '';
             const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp.seconds * 1000);
             const now = new Date();
             const diff = now - date;
             
-            if (diff < 86400000) { // Less than 24 hours
+            if (diff < 86400000) {
                 return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
-            } else if (diff < 604800000) { // Less than 7 days
+            } else if (diff < 604800000) {
                 return date.toLocaleDateString('en-US', { weekday: 'short' });
             } else {
                 return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
@@ -644,6 +911,7 @@
             return colors[Math.abs(hash) % colors.length];
         }
 
+        // Authentication functions
         async function handleSignUp() {
             const username = document.getElementById('username').value.trim();
             const password = document.getElementById('password').value;
@@ -708,10 +976,13 @@
             await auth.signOut();
         }
 
+        // Navigation functions
         function goHome() {
             currentView = 'home';
             selectedFriend = null;
             selectedGroup = null;
+            selectedChannel = null;
+            editingMessageId = null;
             render();
         }
 
@@ -735,6 +1006,22 @@
             render();
         }
 
+        function showChannels() {
+            currentView = 'channels';
+            render();
+        }
+
+        function showCreateChannel() {
+            currentView = 'createChannel';
+            render();
+        }
+
+        function viewChannel(channelId) {
+            selectedChannel = channels.find(c => c.id === channelId);
+            currentView = 'channelView';
+            render();
+        }
+
         function scrollToBottom() {
             setTimeout(() => {
                 const chatDiv = document.getElementById('chatMessages');
@@ -748,6 +1035,7 @@
             selectedFriend = friends.find(f => f.id === friendId);
             selectedGroup = null;
             currentView = 'chat';
+            editingMessageId = null;
             render();
             scrollToBottom();
         }
@@ -756,10 +1044,108 @@
             selectedGroup = groups.find(g => g.id === groupId);
             selectedFriend = null;
             currentView = 'groupChat';
+            editingMessageId = null;
             render();
             scrollToBottom();
         }
 
+        // Message functions
+        async function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const text = input.value.trim();
+            
+            if (!text || !selectedFriend) return;
+
+            try {
+                await db.collection('messages').add({
+                    from: currentUser.username,
+                    to: selectedFriend.friendUsername,
+                    text: text,
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                    type: 'text'
+                });
+                
+                input.value = '';
+                scrollToBottom();
+            } catch (error) {
+                console.error('Send message error:', error);
+                alert('Failed to send message');
+            }
+        }
+
+        async function sendGroupMessage() {
+            const input = document.getElementById('messageInput');
+            const text = input.value.trim();
+            
+            if (!text || !selectedGroup) return;
+
+            try {
+                await db.collection('messages').add({
+                    from: currentUser.username,
+                    groupId: selectedGroup.id,
+                    text: text,
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                    type: 'group_text'
+                });
+                
+                input.value = '';
+                scrollToBottom();
+            } catch (error) {
+                console.error('Send group message error:', error);
+                alert('Failed to send message');
+            }
+        }
+
+        function startEditMessage(messageId, currentText) {
+            editingMessageId = messageId;
+            render();
+            const input = document.getElementById('messageInput');
+            if (input) {
+                input.value = currentText;
+                input.focus();
+            }
+        }
+
+        function cancelEditMessage() {
+            editingMessageId = null;
+            render();
+        }
+
+        async function saveEditMessage() {
+            const input = document.getElementById('messageInput');
+            const newText = input.value.trim();
+            
+            if (!newText || !editingMessageId) return;
+
+            try {
+                await db.collection('messages').doc(editingMessageId).update({
+                    text: newText,
+                    edited: true,
+                    editedAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                
+                editingMessageId = null;
+                input.value = '';
+                render();
+                scrollToBottom();
+            } catch (error) {
+                console.error('Edit message error:', error);
+                alert('Failed to edit message');
+            }
+        }
+
+        async function deleteMessage(messageId) {
+            if (!confirm('Delete this message?')) return;
+
+            try {
+                await db.collection('messages').doc(messageId).delete();
+            } catch (error) {
+                console.error('Delete message error:', error);
+                alert('Failed to delete message');
+            }
+        }
+
+        // Friend functions
         async function showAddFriend() {
             const username = prompt('Enter username to add:');
             if (!username) return;
@@ -838,8 +1224,11 @@
             }
         }
 
+        // Group functions
         async function createGroupWithMembers() {
             const groupName = document.getElementById('groupNameInput').value.trim();
+            const groupBio = document.getElementById('groupBioInput').value.trim();
+            
             if (!groupName) {
                 alert('Please enter a group name');
                 return;
@@ -856,6 +1245,7 @@
             try {
                 await db.collection('groups').add({
                     name: groupName,
+                    bio: groupBio || null,
                     creator: currentUser.username,
                     members: [currentUser.username, ...selectedMembers],
                     createdAt: firebase.firestore.FieldValue.serverTimestamp()
@@ -866,6 +1256,46 @@
             } catch (error) {
                 console.error('Create group error:', error);
                 alert('Failed to create group');
+            }
+        }
+
+        async function editGroupInfo() {
+            const newName = prompt('Enter
+                                   new group name:', selectedGroup.name);
+            if (!newName || newName === selectedGroup.name) {
+                const newBio = prompt('Enter new group bio:', selectedGroup.bio || '');
+                if (newBio !== null && newBio !== selectedGroup.bio) {
+                    try {
+                        await db.collection('groups').doc(selectedGroup.id).update({
+                            bio: newBio
+                        });
+                        alert('Group bio updated!');
+                        showGroupInfo();
+                    } catch (error) {
+                        console.error('Update group bio error:', error);
+                        alert('Failed to update group bio');
+                    }
+                }
+                return;
+            }
+
+            try {
+                await db.collection('groups').doc(selectedGroup.id).update({
+                    name: newName
+                });
+                
+                const newBio = prompt('Enter new group bio:', selectedGroup.bio || '');
+                if (newBio !== null) {
+                    await db.collection('groups').doc(selectedGroup.id).update({
+                        bio: newBio
+                    });
+                }
+                
+                alert('Group info updated!');
+                showGroupInfo();
+            } catch (error) {
+                console.error('Update group error:', error);
+                alert('Failed to update group info');
             }
         }
 
@@ -944,52 +1374,115 @@
             }
         }
 
-        async function sendMessage() {
-            const input = document.getElementById('messageInput');
-            const text = input.value.trim();
+        // Channel functions
+        async function createChannel() {
+            const channelName = document.getElementById('channelNameInput').value.trim();
+            const channelDesc = document.getElementById('channelDescInput').value.trim();
+
+            if (!channelName) {
+                alert('Please enter a channel name');
+                return;
+            }
+
+            try {
+                await db.collection('channels').add({
+                    name: channelName,
+                    description: channelDesc || null,
+                    creator: currentUser.username,
+                    followers: [currentUser.username],
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                
+                alert('Channel created!');
+                showChannels();
+            } catch (error) {
+                console.error('Create channel error:', error);
+                alert('Failed to create channel');
+            }
+        }
+
+        async function toggleFollowChannel(channelId) {
+            const channel = channels.find(c => c.id === channelId);
+            if (!channel) return;
+
+            const isFollowing = channel.followers && channel.followers.includes(currentUser.username);
+
+            try {
+                if (isFollowing) {
+                    await db.collection('channels').doc(channelId).update({
+                        followers: firebase.firestore.FieldValue.arrayRemove(currentUser.username)
+                    });
+                } else {
+                    await db.collection('channels').doc(channelId).update({
+                        followers: firebase.firestore.FieldValue.arrayUnion(currentUser.username)
+                    });
+                }
+            } catch (error) {
+                console.error('Toggle follow error:', error);
+                alert('Failed to update follow status');
+            }
+        }
+
+        async function postToChannel() {
+            const input = document.getElementById('channelPostInput');
+            const text = input ? input.value.trim() : '';
             
-            if (!text || !selectedFriend) return;
+            if (!text || !selectedChannel) return;
 
             try {
                 await db.collection('messages').add({
                     from: currentUser.username,
-                    to: selectedFriend.friendUsername,
+                    channelId: selectedChannel.id,
                     text: text,
                     timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-                    type: 'text'
+                    type: 'channel_post'
                 });
                 
                 input.value = '';
-                scrollToBottom();
             } catch (error) {
-                console.error('Send message error:', error);
-                alert('Failed to send message');
+                console.error('Post to channel error:', error);
+                alert('Failed to post');
             }
         }
 
-        async function sendGroupMessage() {
-            const input = document.getElementById('messageInput');
-            const text = input.value.trim();
-            
-            if (!text || !selectedGroup) return;
+        function filterChannels(searchTerm) {
+            const term = searchTerm.toLowerCase();
+            const filtered = channels.filter(c => 
+                c.name.toLowerCase().includes(term) || 
+                (c.description && c.description.toLowerCase().includes(term))
+            );
 
-            try {
-                await db.collection('messages').add({
-                    from: currentUser.username,
-                    groupId: selectedGroup.id,
-                    text: text,
-                    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-                    type: 'group_text'
-                });
-                
-                input.value = '';
-                scrollToBottom();
-            } catch (error) {
-                console.error('Send group message error:', error);
-                alert('Failed to send message');
-            }
+            const channelsHtml = filtered.length === 0
+                ? '<div class="text-center py-8 text-gray-500"><p>No channels found</p></div>'
+                : filtered.map(channel => {
+                    const isFollowing = channel.followers && channel.followers.includes(currentUser.username);
+                    return `
+                    <div class="bg-white p-4 border-b hover:bg-gray-50 transition">
+                        <div class="flex items-center justify-between">
+                            <div onclick="viewChannel('${channel.id}')" class="flex items-center gap-3 flex-1 cursor-pointer">
+                                <div class="w-12 h-12 rounded-full bg-gradient-to-br from-purple-400 to-purple-600 flex items-center justify-center text-white text-2xl">
+                                    ${icons.channel}
+                                </div>
+                                <div>
+                                    <p class="font-semibold">${channel.name}</p>
+                                    ${channel.description ? `<p class="text-xs text-gray-500">${channel.description}</p>` : ''}
+                                    <p class="text-xs text-gray-400">${channel.followers ? channel.followers.length : 0} followers</p>
+                                </div>
+                            </div>
+                            ${channel.creator !== currentUser.username ? `
+                            <button onclick="toggleFollowChannel('${channel.id}')" 
+                                class="${isFollowing ? 'bg-gray-200 text-gray-700' : 'bg-green-600 text-white'} px-4 py-2 rounded-full text-sm hover:opacity-80">
+                                ${isFollowing ? 'Following' : 'Follow'}
+                            </button>
+                            ` : ''}
+                        </div>
+                    </div>
+                `}).join('');
+
+            document.getElementById('channelsList').innerHTML = channelsHtml;
         }
 
+        // Story functions
         function captureImage() {
             document.getElementById('imageInput').click();
         }
@@ -1000,47 +1493,54 @@
 
             const reader = new FileReader();
             reader.onload = async (e) => {
-                await uploadToCloudinary(e.target.result);
+                // Check if posting story from home
+                if (currentView === 'home') {
+                    const isPublic = confirm('Make this story public?\n\nOK = Public (everyone can see)\nCancel = Private (only friends can see)');
+                    await uploadStory(e.target.result, isPublic);
+                } else {
+                    await uploadToCloudinary(e.target.result);
+                }
             };
             reader.readAsDataURL(file);
             event.target.value = '';
         }
 
-        async function uploadToCloudinary(imageData) {
-            if (currentView === 'home') {
-                try {
-                    const blob = await fetch(imageData).then(r => r.blob());
-                    const formData = new FormData();
-                    formData.append('file', blob);
-                    formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
-                    formData.append('folder', 'godswillscorechat/stories');
+        async function uploadStory(imageData, isPublic) {
+            try {
+                const blob = await fetch(imageData).then(r => r.blob());
+                const formData = new FormData();
+                formData.append('file', blob);
+                formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+                formData.append('folder', 'godswillscorechat/stories');
 
-                    const response = await fetch(CLOUDINARY_UPLOAD_URL, {
-                        method: 'POST',
-                        body: formData
-                    });
+                const response = await fetch(CLOUDINARY_UPLOAD_URL, {
+                    method: 'POST',
+                    body: formData
+                });
 
-                    const data = await response.json();
+                const data = await response.json();
 
-                    await db.collection('stories').add({
-                        username: currentUser.username,
-                        imageUrl: data.secure_url,
-                        publicId: data.public_id,
-                        timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-                        expiresAt: firebase.firestore.Timestamp.fromDate(new Date(Date.now() + 24 * 60 * 60 * 1000))
-                    });
+                await db.collection('stories').add({
+                    username: currentUser.username,
+                    imageUrl: data.secure_url,
+                    publicId: data.public_id,
+                    isPublic: isPublic,
+                    viewedBy: [],
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                    expiresAt: firebase.firestore.Timestamp.fromDate(new Date(Date.now() + 24 * 60 * 60 * 1000))
+                });
 
-                    alert('Story posted! 🎉');
-                    render();
-                } catch (error) {
-                    console.error('Upload error:', error);
-                    alert('Failed to upload story');
-                }
-                return;
+                alert(`Story posted as ${isPublic ? 'PUBLIC' : 'PRIVATE'}! 🎉`);
+                render();
+            } catch (error) {
+                console.error('Upload story error:', error);
+                alert('Failed to upload story');
             }
+        }
 
-            if (!selectedFriend && !selectedGroup) {
-                alert('Please select a friend or group first');
+        async function uploadToCloudinary(imageData) {
+            if (!selectedFriend && !selectedGroup && !selectedChannel) {
+                alert('Please select a friend, group, or channel first');
                 return;
             }
 
@@ -1058,7 +1558,16 @@
 
                 const data = await response.json();
 
-                if (selectedGroup) {
+                if (selectedChannel) {
+                    await db.collection('messages').add({
+                        from: currentUser.username,
+                        channelId: selectedChannel.id,
+                        imageUrl: data.secure_url,
+                        publicId: data.public_id,
+                        timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                        type: 'channel_post'
+                    });
+                } else if (selectedGroup) {
                     await db.collection('messages').add({
                         from: currentUser.username,
                         groupId: selectedGroup.id,
@@ -1086,12 +1595,29 @@
             }
         }
 
-        function viewStory(storyId) {
+        async function viewStory(storyId) {
             const story = stories.find(s => s.id === storyId);
             if (!story) return;
+
+            // Track view if not own story and not already viewed
+            if (story.username !== currentUser.username) {
+                const viewedBy = story.viewedBy || [];
+                if (!viewedBy.includes(currentUser.username)) {
+                    try {
+                        await db.collection('stories').doc(storyId).update({
+                            viewedBy: firebase.firestore.FieldValue.arrayUnion(currentUser.username)
+                        });
+                    } catch (error) {
+                        console.error('Track view error:', error);
+                    }
+                }
+            }
             
             const modal = document.getElementById('storyModal');
             const content = document.getElementById('storyContent');
+            
+            const isMyStory = story.username === currentUser.username;
+            const viewCount = story.viewedBy ? story.viewedBy.length : 0;
             
             content.innerHTML = `
                 <div class="relative w-full max-w-lg h-full flex flex-col">
@@ -1101,10 +1627,22 @@
                                 ${icons.user}
                             </div>
                             <span class="text-white font-semibold">@${story.username}</span>
+                            ${!story.isPublic ? `<span class="text-white">${icons.lock}</span>` : ''}
                         </div>
-                        <span class="text-white text-sm bg-black bg-opacity-50 px-3 py-2 rounded-full">
-                            ${formatTime(story.timestamp)}
-                        </span>
+                        <div class="flex items-center gap-2">
+                            ${isMyStory ? `
+                            <div class="bg-black bg-opacity-50 px-3 py-2 rounded-full flex items-center gap-1">
+                                <span class="text-white">${icons.eye}</span>
+                                <span class="text-white text-sm font-semibold">${viewCount}</span>
+                            </div>
+                            <button onclick="deleteStory('${story.id}')" class="bg-red-500 bg-opacity-80 px-3 py-2 rounded-full text-white text-sm font-semibold hover:bg-opacity-100">
+                                ${icons.delete} Delete
+                            </button>
+                            ` : ''}
+                            <span class="text-white text-sm bg-black bg-opacity-50 px-3 py-2 rounded-full">
+                                ${formatTime(story.timestamp)}
+                            </span>
+                        </div>
                     </div>
                     <div class="flex-1 flex items-center justify-center">
                         <img src="${story.imageUrl}" alt="Story" class="max-w-full max-h-full object-contain">
@@ -1120,12 +1658,27 @@
             modal.classList.add('hidden');
         }
 
+        async function deleteStory(storyId) {
+            if (!confirm('Delete this story?')) return;
+
+            try {
+                await db.collection('stories').doc(storyId).delete();
+                closeStory();
+                alert('Story deleted!');
+            } catch (error) {
+                console.error('Delete story error:', error);
+                alert('Failed to delete story');
+            }
+        }
+
+        // Firebase listeners
         auth.onAuthStateChanged(async (user) => {
             if (user) {
                 const userDoc = await db.collection('users').doc(user.uid).get();
                 currentUser = userDoc.data();
                 currentView = 'home';
                 
+                // Listen to friends where current user is user1
                 db.collection('friends')
                     .where('user1', '==', currentUser.username)
                     .onSnapshot(snapshot => {
@@ -1135,6 +1688,7 @@
                             streak: doc.data().streak || 0
                         }));
                         
+                        // Listen to friends where current user is user2
                         db.collection('friends')
                             .where('user2', '==', currentUser.username)
                             .onSnapshot(snapshot2 => {
@@ -1150,6 +1704,7 @@
                         render();
                     });
                 
+                // Listen to all messages (will be filtered in render functions)
                 db.collection('messages').onSnapshot(snapshot => {
                     messages = snapshot.docs.map(doc => ({
                         id: doc.id,
@@ -1161,6 +1716,7 @@
                     }
                 });
                 
+                // Listen to friend requests
                 db.collection('friendRequests').onSnapshot(snapshot => {
                     friendRequests = snapshot.docs.map(doc => ({
                         id: doc.id,
@@ -1169,6 +1725,7 @@
                     render();
                 });
                 
+                // Listen to groups
                 db.collection('groups')
                     .where('members', 'array-contains', currentUser.username)
                     .onSnapshot(snapshot => {
@@ -1179,6 +1736,7 @@
                         render();
                     });
                 
+                // Listen to stories
                 db.collection('stories')
                     .where('expiresAt', '>', firebase.firestore.Timestamp.now())
                     .onSnapshot(snapshot => {
@@ -1189,6 +1747,16 @@
                         render();
                     });
 
+                // Listen to channels
+                db.collection('channels').onSnapshot(snapshot => {
+                    channels = snapshot.docs.map(doc => ({
+                        id: doc.id,
+                        ...doc.data()
+                    }));
+                    render();
+                });
+
+                // Listen to all users
                 db.collection('users').onSnapshot(snapshot => {
                     allUsers = snapshot.docs.map(doc => doc.data());
                 });
@@ -1202,7 +1770,9 @@
                 groups = [];
                 friendRequests = [];
                 stories = [];
+                channels = [];
                 allUsers = [];
+                editingMessageId = null;
                 render();
             }
         });
