@@ -264,11 +264,8 @@
             width: 40px;
             height: 40px;
             border-radius: 50%;
+            object-fit: contain;
             background: rgba(255, 255, 255, 0.1);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 24px;
         }
 
         .teams-container {
@@ -283,6 +280,7 @@
             display: flex;
             align-items: center;
             gap: 12px;
+            flex-wrap: wrap;
         }
 
         .match-status {
@@ -334,6 +332,7 @@
             font-size: 15px;
             text-align: center;
             box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+            min-width: 200px;
         }
 
         .confidence-bar {
@@ -967,7 +966,8 @@
 
         <div class="nav-tabs">
             <button class="tab-btn active" onclick="showTab('predictions')">Today's Matches</button>
-            <button class="tab-btn" onclick="showTab('leagues')">League Browser</button>
+            <button class="tab-btn" onclick
+                ="showTab('leagues')">League Browser</button>
             <button class="tab-btn" onclick="showTab('analysis')">Detailed Analysis</button>
             <button class="tab-btn" onclick="showTab('tables')">League Tables</button>
             <button class="tab-btn" onclick="showTab('upgrade')">⭐ Upgrade</button>
@@ -1013,20 +1013,20 @@
                             <div class="stat-value">10+</div>
                         </div>
                         <div class="stat-box">
-                            <div class="stat-label">Detailed Stats</div>
-                            <div class="stat-value">Full Access</div>
+                            <div class="stat-label">Real Lineups</div>
+                            <div class="stat-value">Live Data</div>
                         </div>
                         <div class="stat-box">
-                            <div class="stat-label">Lineups</div>
-                            <div class="stat-value">Live</div>
-                        </div>
-                        <div class="stat-box">
-                            <div class="stat-label">League Tables</div>
+                            <div class="stat-label">Team Stats</div>
                             <div class="stat-value">Real-time</div>
                         </div>
                         <div class="stat-box">
-                            <div class="stat-label">Accuracy Rate</div>
-                            <div class="stat-value">85%+</div>
+                            <div class="stat-label">League Tables</div>
+                            <div class="stat-value">All 10</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-label">AI Predictions</div>
+                            <div class="stat-value">Expert</div>
                         </div>
                     </div>
                 </div>
@@ -1159,9 +1159,14 @@
         let allPayments = [];
         let allMatches = [];
         let selectedLeague = null;
+        let apiCallCount = 0;
+        const MAX_API_CALLS_PER_MINUTE = 30;
+
+        const API_KEY = '3ebb8c007fec13bc6ce38b31614b6bf1be88e0c7c95f5f3d1b4501049b363290';
+        const API_HOST = 'v3.football.api-sports.io';
 
         const LEAGUES = [
-            { id: 39, name: 'Premier League', country: 'England', flag: '🏴󐁧󐁢󐁥󐁮󐁧󐁿' },
+            { id: 39, name: 'Premier League', country: 'England', flag: '🏴󠁧󠁢󠁥󠁮󠁧󠁿' },
             { id: 140, name: 'La Liga', country: 'Spain', flag: '🇪🇸' },
             { id: 78, name: 'Bundesliga', country: 'Germany', flag: '🇩🇪' },
             { id: 135, name: 'Serie A', country: 'Italy', flag: '🇮🇹' },
@@ -1172,6 +1177,17 @@
             { id: 307, name: 'Saudi Pro League', country: 'Saudi Arabia', flag: '🇸🇦' },
             { id: 88, name: 'Eredivisie', country: 'Netherlands', flag: '🇳🇱' }
         ];
+
+        // API Call Rate Limiter
+        async function makeAPICall(url, headers) {
+            if (apiCallCount >= MAX_API_CALLS_PER_MINUTE) {
+                console.warn('API rate limit approaching, waiting...');
+                await new Promise(resolve => setTimeout(resolve, 2000));
+                apiCallCount = 0;
+            }
+            apiCallCount++;
+            return fetch(url, { method: 'GET', headers });
+        }
 
         auth.onAuthStateChanged((user) => {
             if (user) {
@@ -1323,7 +1339,7 @@
             if (!isPremium) {
                 leagueMatches.innerHTML = `
                     <div class="match-card">
-                        <div class="premium-lock">
+                        <div class="premium-lock" style="position: relative; min-height: 300px;">
                             <div class="lock-icon">🔒</div>
                             <h3>Premium Feature</h3>
                             <p>Upgrade to access league-specific matches and analysis</p>
@@ -1336,18 +1352,18 @@
 
             try {
                 const today = getTodayDate();
-                const response = await fetch(`https://v3.football.api-sports.io/fixtures?league=${leagueId}&date=${today}&season=2024`, {
-                    method: 'GET',
-                    headers: {
-                        'x-rapidapi-host': 'v3.football.api-sports.io',
-                        'x-rapidapi-key': '3ebb8c007fec13bc6ce38b31614b6bf1be88e0c7c95f5f3d1b4501049b363290'
+                const response = await makeAPICall(
+                    `https://${API_HOST}/fixtures?league=${leagueId}&date=${today}&season=2024`,
+                    {
+                        'x-rapidapi-host': API_HOST,
+                        'x-rapidapi-key': API_KEY
                     }
-                });
+                );
                 
                 if (response.ok) {
                     const data = await response.json();
                     if (data.response && data.response.length > 0) {
-                        displayLeagueMatches(data.response, isPremium);
+                        await displayLeagueMatches(data.response, isPremium);
                     } else {
                         leagueMatches.innerHTML = `
                             <div class="match-card">
@@ -1369,12 +1385,16 @@
             }
         }
 
-        function displayLeagueMatches(matches, isPremium) {
+        async function displayLeagueMatches(matches, isPremium) {
             const leagueMatches = document.getElementById('leagueMatches');
-            leagueMatches.innerHTML = matches.map(match => {
-                const prediction = generatePrediction(match);
-                return createMatchCard(match, prediction, isPremium, true);
-            }).join('');
+            const matchCards = [];
+            
+            for (const match of matches) {
+                const enhancedMatch = await enhanceMatchWithRealData(match);
+                matchCards.push(createMatchCard(enhancedMatch, isPremium, true));
+            }
+            
+            leagueMatches.innerHTML = matchCards.join('');
         }
 
         async function loadPredictions() {
@@ -1388,112 +1408,22 @@
                 const userDoc = await db.collection('users').doc(currentUser.uid).get();
                 const isPremium = userDoc.data()?.isPremium || false;
 
-                let matches = [];
-
-                try {
-                    const today = getTodayDate();
-                    const response = await fetch(`https://v3.football.api-sports.io/fixtures?date=${today}`, {
-                        method: 'GET',
-                        headers: {
-                            'x-rapidapi-host': 'v3.football.api-sports.io',
-                            'x-rapidapi-key': '3ebb8c007fec13bc6ce38b31614b6bf1be88e0c7c95f5f3d1b4501049b363290'
-                        }
-                    });
-                    
-                    if (response.ok) {
-                        const data = await response.json();
-                        if (data.response && data.response.length > 0) {
-                            matches = data.response;
-                            allMatches = matches;
-                            console.log(`✅ Loaded ${matches.length} matches from API-Football`);
-                        }
+                const today = getTodayDate();
+                const response = await makeAPICall(
+                    `https://${API_HOST}/fixtures?date=${today}`,
+                    {
+                        'x-rapidapi-host': API_HOST,
+                        'x-rapidapi-key': API_KEY
                     }
-                } catch (error) {
-                    console.log('API-Football error:', error);
+                );
+                
+                if (!response.ok) {
+                    throw new Error('Failed to load fixtures');
                 }
 
-                if (matches.length === 0) {
-                    try {
-                        const response = await fetch('https://api.football-data.org/v4/matches', {
-                            headers: {
-                                'X-Auth-Token': '8e0fbe1a3138453096b4a4aae23e301b'
-                            }
-                        });
-                        
-                        if (response.ok) {
-                            const data = await response.json();
-                            const today = new Date();
-                            matches = (data.matches || []).filter(match => {
-                                const matchDate = new Date(match.utcDate);
-                                return matchDate.toDateString() === today.toDateString();
-                            }).map(match => ({
-                                fixture: {
-                                    date: match.utcDate,
-                                    status: { short: match.status }
-                                },
-                                league: {
-                                    name: match.competition.name,
-                                    country: match.area?.name || 'International',
-                                    logo: null
-                                },
-                                teams: {
-                                    home: { name: match.homeTeam.name, logo: match.homeTeam.crest },
-                                    away: { name: match.awayTeam.name, logo: match.awayTeam.crest }
-                                },
-                                goals: {
-                                    home: match.score?.fullTime?.home,
-                                    away: match.score?.fullTime?.away
-                                }
-                            }));
-                            allMatches = matches;
-                            console.log(`✅ Loaded ${matches.length} matches from Football-Data.org`);
-                        }
-                    } catch (error) {
-                        console.log('Football-Data.org error:', error);
-                    }
-                }
-
-                if (matches.length === 0) {
-                    try {
-                        const today = getTodayDate();
-                        const response = await fetch(`https://www.thesportsdb.com/api/v1/json/3/eventsday.php?d=${today}&s=Soccer`);
-                        
-                        if (response.ok) {
-                            const data = await response.json();
-                            if (data.events && data.events.length > 0) {
-                                matches = data.events.map(event => ({
-                                    fixture: {
-                                        date: `${event.dateEvent} ${event.strTime || '00:00'}`,
-                                        status: { short: event.strStatus || 'NS' }
-                                    },
-                                    league: {
-                                        name: event.strLeague,
-                                        country: event.strCountry || 'International',
-                                        logo: event.strLeagueBadge
-                                    },
-                                    teams: {
-                                        home: { name: event.strHomeTeam, logo: event.strHomeTeamBadge },
-                                        away: { name: event.strAwayTeam, logo: event.strAwayTeamBadge }
-                                    },
-                                    goals: {
-                                        home: event.intHomeScore,
-                                        away: event.intAwayScore
-                                    },
-                                    score: {
-                                        halftime: {
-                                            home: event.intHomeHalfScore,
-                                            away: event.intAwayHalfScore
-                                        }
-                                    }
-                                }));
-                                allMatches = matches;
-                                console.log(`✅ Loaded ${matches.length} matches from TheSportsDB`);
-                            }
-                        }
-                    } catch (error) {
-                        console.log('TheSportsDB error:', error);
-                    }
-                }
+                const data = await response.json();
+                let matches = data.response || [];
+                allMatches = matches;
 
                 predictionsLoading.style.display = 'none';
 
@@ -1512,12 +1442,21 @@
                     return;
                 }
 
-                const displayMatches = isPremium ? matches : matches.slice(0, 6);
+                // Limit to important leagues for better performance
+                matches = matches.filter(m => 
+                    LEAGUES.some(league => league.id === m.league.id) ||
+                    matches.indexOf(m) < 50
+                );
 
-                predictionsList.innerHTML = displayMatches.map((match) => {
-                    const prediction = generatePrediction(match);
-                    return createMatchCard(match, prediction, isPremium, true);
-                }).join('');
+                const displayMatches = isPremium ? matches : matches.slice(0, 6);
+                const matchCards = [];
+
+                for (const match of displayMatches) {
+                    const enhancedMatch = await enhanceMatchWithRealData(match);
+                    matchCards.push(createMatchCard(enhancedMatch, isPremium, true));
+                }
+
+                predictionsList.innerHTML = matchCards.join('');
 
                 if (!isPremium && matches.length > 6) {
                     predictionsList.innerHTML += `
@@ -1525,7 +1464,7 @@
                             <div style="font-size: 48px; margin-bottom: 20px;">🔒</div>
                             <h2 style="margin-bottom: 16px;">+${matches.length - 6} More Predictions Available</h2>
                             <p style="color: rgba(255, 255, 255, 0.6); margin-bottom: 30px; font-size: 16px;">
-                                Unlock all ${matches.length} daily predictions, detailed analysis, lineups, and premium features
+                                Unlock all ${matches.length} daily predictions with real data, lineups, and expert analysis
                             </p>
                             <button class="upgrade-cta" onclick="showTab('upgrade')">Upgrade to Premium - ₦5,000/month</button>
                         </div>
@@ -1545,61 +1484,99 @@
             }
         }
 
-        function generatePrediction(match) {
-            const homeTeam = match.teams.home.name;
-            const awayTeam = match.teams.away.name;
-            
-            const homeStrength = calculateTeamStrength(homeTeam);
-            const awayStrength = calculateTeamStrength(awayTeam);
-            const homeAdvantage = 10;
-            
-            const homeWinProb = homeStrength + homeAdvantage;
-            const awayWinProb = awayStrength;
-            
-            let prediction, confidence;
-            
-            if (homeWinProb > awayWinProb + 20) {
-                prediction = 'Home Win';
-                confidence = Math.min(Math.round(homeWinProb), 88);
-            } else if (awayWinProb > homeWinProb + 15) {
-                prediction = 'Away Win';
-                confidence = Math.min(Math.round(awayWinProb), 85);
-            } else if (Math.abs(homeWinProb - awayWinProb) < 10) {
-                prediction = 'Draw or BTTS';
-                confidence = Math.round((homeWinProb + awayWinProb) / 2);
-            } else {
-                prediction = 'Over 2.5 Goals';
-                confidence = Math.round((homeStrength + awayStrength) / 2 + 10);
+        // REAL DATA ENHANCEMENT
+        async function enhanceMatchWithRealData(match) {
+            try {
+                // Get real predictions from API
+                const predictionResponse = await makeAPICall(
+                    `https://${API_HOST}/predictions?fixture=${match.fixture.id}`,
+                    {
+                        'x-rapidapi-host': API_HOST,
+                        'x-rapidapi-key': API_KEY
+                    }
+                );
+
+                if (predictionResponse.ok) {
+                    const predData = await predictionResponse.json();
+                    if (predData.response && predData.response.length > 0) {
+                        match.predictions = predData.response[0].predictions;
+                        match.comparison = predData.response[0].comparison;
+                        match.h2h = predData.response[0].h2h;
+                    }
+                }
+
+                // Get real team statistics
+                const statsResponse = await makeAPICall(
+                    `https://${API_HOST}/fixtures/statistics?fixture=${match.fixture.id}`,
+                    {
+                        'x-rapidapi-host': API_HOST,
+                        'x-rapidapi-key': API_KEY
+                    }
+                );
+
+                if (statsResponse.ok) {
+                    const statsData = await statsResponse.json();
+                    if (statsData.response) {
+                        match.statistics = statsData.response;
+                    }
+                }
+
+                // Get real lineups if match is live or finished
+                if (['1H', 'HT', '2H', 'ET', 'P', 'FT', 'AET', 'PEN'].includes(match.fixture.status.short)) {
+                    const lineupsResponse = await makeAPICall(
+                        `https://${API_HOST}/fixtures/lineups?fixture=${match.fixture.id}`,
+                        {
+                            'x-rapidapi-host': API_HOST,
+                            'x-rapidapi-key': API_KEY
+                        }
+                    );
+
+                    if (lineupsResponse.ok) {
+                        const lineupsData = await lineupsResponse.json();
+                        if (lineupsData.response) {
+                            match.lineups = lineupsData.response;
+                        }
+                    }
+                }
+
+            } catch (error) {
+                console.log('Error enhancing match data:', error);
             }
-            
-            return {
-                prediction,
-                confidence: Math.max(confidence, 62),
-                homeForm: Math.round(homeStrength / 10),
-                awayForm: Math.round(awayStrength / 10),
-                homeGoalsAvg: (Math.random() * 1.5 + 0.8).toFixed(1),
-                awayGoalsAvg: (Math.random() * 1.5 + 0.6).toFixed(1),
-                overUnder: Math.random() > 0.5 ? 'Over 2.5' : 'Under 2.5',
-                btts: Math.random() > 0.4 ? 'Yes' : 'No'
-            };
+
+            return match;
         }
 
-        function calculateTeamStrength(teamName) {
-            const strongKeywords = ['united', 'city', 'real', 'barcelona', 'bayern', 'liverpool', 'chelsea', 'arsenal', 'juventus', 'milan', 'madrid', 'psg', 'inter', 'tottenham', 'dortmund'];
-            const mediumKeywords = ['athletic', 'sporting', 'olympique', 'fc', 'club', 'rangers', 'celtic'];
-            
-            const lowerName = teamName.toLowerCase();
-            
-            if (strongKeywords.some(keyword => lowerName.includes(keyword))) {
-                return Math.random() * 15 + 35;
-            } else if (mediumKeywords.some(keyword => lowerName.includes(keyword))) {
-                return Math.random() * 15 + 25;
-            } else {
-                return Math.random() * 20 + 20;
+        async function getTeamForm(teamId, leagueId) {
+            try {
+                const response = await makeAPICall(
+                    `https://${API_HOST}/fixtures?team=${teamId}&league=${leagueId}&last=5&season=2024`,
+                    {
+                        'x-rapidapi-host': API_HOST,
+                        'x-rapidapi-key': API_KEY
+                    }
+                );
+
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.response && data.response.length > 0) {
+                        return data.response.map(match => {
+                            const isHome = match.teams.home.id === teamId;
+                            const teamGoals = isHome ? match.goals.home : match.goals.away;
+                            const oppGoals = isHome ? match.goals.away : match.goals.home;
+                            
+                            if (teamGoals > oppGoals) return 'W';
+                            if (teamGoals < oppGoals) return 'L';
+                            return 'D';
+                        });
+                    }
+                }
+            } catch (error) {
+                console.log('Error getting team form:', error);
             }
+            return ['W', 'D', 'L', 'W', 'D']; // Fallback
         }
 
-        function createMatchCard(match, pred, isPremium, showFullDetails = false) {
+        function createMatchCard(match, isPremium, showFullDetails = false) {
             const matchDate = new Date(match.fixture.date);
             const matchTime = matchDate.toLocaleTimeString('en-US', { 
                 hour: '2-digit', 
@@ -1607,94 +1584,129 @@
                 hour12: true
             });
 
-            const homeLogo = match.teams.home.logo ? `<img src="${match.teams.home.logo}" alt="${match.teams.home.name}" class="club-badge">` : `<div class="club-badge">⚽</div>`;
-            const awayLogo = match.teams.away.logo ? `<img src="${match.teams.away.logo}" alt="${match.teams.away.name}" class="club-badge">` : `<div class="club-badge">⚽</div>`;
+            const homeLogo = match.teams.home.logo ? 
+                `<img src="${match.teams.home.logo}" alt="${match.teams.home.name}" class="club-badge">` : 
+                `<div class="club-badge" style="background: #667eea; color: #fff;">⚽</div>`;
+            
+            const awayLogo = match.teams.away.logo ? 
+                `<img src="${match.teams.away.logo}" alt="${match.teams.away.name}" class="club-badge">` : 
+                `<div class="club-badge" style="background: #667eea; color: #fff;">⚽</div>`;
 
             const statusShort = match.fixture.status.short;
             let statusBadge = '';
             let scoreDisplay = '';
 
-            if (statusShort === 'LIVE' || statusShort === '1H' || statusShort === 'HT' || statusShort === '2H') {
+            if (['1H', 'HT', '2H', 'ET', 'P', 'LIVE'].includes(statusShort)) {
                 statusBadge = `<span class="match-status status-live">● LIVE</span>`;
                 if (match.goals) {
                     scoreDisplay = `<div style="font-size: 2em; font-weight: 800; color: #667eea; margin: 10px 0;">${match.goals.home || 0} - ${match.goals.away || 0}</div>`;
                 }
-            } else if (statusShort === 'FT' || statusShort === 'AET' || statusShort === 'PEN') {
+            } else if (['FT', 'AET', 'PEN'].includes(statusShort)) {
                 statusBadge = `<span class="match-status status-finished">FINISHED</span>`;
                 if (match.goals) {
                     scoreDisplay = `<div style="font-size: 2em; font-weight: 800; color: rgba(255, 255, 255, 0.7); margin: 10px 0;">${match.goals.home || 0} - ${match.goals.away || 0}</div>`;
                 }
             }
 
-            const redCards = match.events?.filter(e => e.type === 'Card' && e.detail === 'Red Card') || [];
-            let redCardDisplay = '';
-            if (redCards.length > 0) {
-                redCardDisplay
-                redCardDisplay = redCards.map(card => 
-                    `<span class="red-card">🟥 ${card.player.name} ${card.time.elapsed}'</span>`
-                ).join('');
+            // Real prediction from API or smart fallback
+            let prediction = 'Loading...';
+            let confidence = 65;
+
+            if (match.predictions) {
+                const pred = match.predictions;
+                if (pred.winner) {
+                    if (pred.winner.id === match.teams.home.id) {
+                        prediction = 'Home Win';
+                    } else if (pred.winner.id === match.teams.away.id) {
+                        prediction = 'Away Win';
+                    } else {
+                        prediction = 'Draw';
+                    }
+                }
+                
+                if (pred.percent) {
+                    confidence = Math.max(
+                        parseInt(pred.percent.home) || 0,
+                        parseInt(pred.percent.away) || 0,
+                        parseInt(pred.percent.draw) || 0
+                    );
+                }
+
+                if (pred.advice) {
+                    prediction = pred.advice;
+                }
             }
 
-            const last5Matches = generateLast5Matches();
-            
-            const premiumStats = isPremium && showFullDetails ? `
-                <div class="stats-grid">
-                    <div class="stat-box">
-                        <div class="stat-label">Home Form</div>
-                        <div class="stat-value">${'⭐'.repeat(pred.homeForm)}</div>
-                    </div>
-                    <div class="stat-box">
-                        <div class="stat-label">Away Form</div>
-                        <div class="stat-value">${'⭐'.repeat(pred.awayForm)}</div>
-                    </div>
-                    <div class="stat-box">
-                        <div class="stat-label">Home Avg Goals</div>
-                        <div class="stat-value">${pred.homeGoalsAvg}</div>
-                    </div>
-                    <div class="stat-box">
-                        <div class="stat-label">Away Avg Goals</div>
-                        <div class="stat-value">${pred.awayGoalsAvg}</div>
-                    </div>
-                    <div class="stat-box">
-                        <div class="stat-label">Over/Under</div>
-                        <div class="stat-value">${pred.overUnder}</div>
-                    </div>
-                    <div class="stat-box">
-                        <div class="stat-label">BTTS</div>
-                        <div class="stat-value">${pred.btts}</div>
-                    </div>
-                </div>
+            // Real statistics display
+            let premiumStats = '';
+            if (isPremium && showFullDetails) {
+                const homeForm = match.comparison?.form?.home || '50%';
+                const awayForm = match.comparison?.form?.away || '50%';
+                const homeAtt = match.comparison?.att?.home || '50%';
+                const awayAtt = match.comparison?.att?.away || '50%';
+                const homeDef = match.comparison?.def?.home || '50%';
+                const awayDef = match.comparison?.def?.away || '50%';
 
-                <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid rgba(255, 255, 255, 0.1);">
-                    <h4 style="margin-bottom: 15px; color: #667eea;">Last 5 Matches</h4>
+                premiumStats = `
                     <div class="stats-grid">
                         <div class="stat-box">
-                            <div class="stat-label">${match.teams.home.name}</div>
-                            <div class="form-badges">
-                                ${last5Matches.home.map(result => 
-                                    `<div class="form-badge form-${result.toLowerCase()}">${result}</div>`
-                                ).join('')}
-                            </div>
+                            <div class="stat-label">Home Form</div>
+                            <div class="stat-value">${homeForm}</div>
                         </div>
                         <div class="stat-box">
-                            <div class="stat-label">${match.teams.away.name}</div>
-                            <div class="form-badges">
-                                ${last5Matches.away.map(result => 
-                                    `<div class="form-badge form-${result.toLowerCase()}">${result}</div>`
-                                ).join('')}
+                            <div class="stat-label">Away Form</div>
+                            <div class="stat-value">${awayForm}</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-label">Home Attack</div>
+                            <div class="stat-value">${homeAtt}</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-label">Away Attack</div>
+                            <div class="stat-value">${awayAtt}</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-label">Home Defense</div>
+                            <div class="stat-value">${homeDef}</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-label">Away Defense</div>
+                            <div class="stat-value">${awayDef}</div>
+                            </div>
+                    </div>
+                `;
+
+                // Add H2H last 5 matches if available
+                if (match.h2h && match.h2h.length > 0) {
+                    const h2hMatches = match.h2h.slice(0, 5);
+                    premiumStats += `
+                        <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid rgba(255, 255, 255, 0.1);">
+                            <h4 style="margin-bottom: 15px; color: #667eea;">Head to Head (Last 5)</h4>
+                            <div class="stats-grid">
+                                ${h2hMatches.map(h2hMatch => `
+                                    <div class="stat-box">
+                                        <div class="stat-label">${new Date(h2hMatch.fixture.date).toLocaleDateString()}</div>
+                                        <div style="font-size: 14px; margin-top: 5px;">
+                                            ${h2hMatch.teams.home.name} ${h2hMatch.goals.home} - ${h2hMatch.goals.away} ${h2hMatch.teams.away.name}
+                                        </div>
+                                    </div>
+                                `).join('')}
                             </div>
                         </div>
-                    </div>
-                </div>
+                    `;
+                }
 
-                ${generateLineups(match)}
-            ` : '';
+                // Real lineups if available
+                if (match.lineups && match.lineups.length === 2) {
+                    premiumStats += generateRealLineups(match);
+                }
+            }
             
             const premiumLock = !isPremium && showFullDetails ? `
                 <div class="premium-lock">
                     <div class="lock-icon">🔒</div>
                     <h3>Detailed Analysis Locked</h3>
-                    <p style="margin-top: 12px; color: rgba(255, 255, 255, 0.7);">Upgrade to view full statistics, lineups, and insights</p>
+                    <p style="margin-top: 12px; color: rgba(255, 255, 255, 0.7);">Upgrade to view real statistics, lineups, and expert predictions</p>
                     <button class="upgrade-cta" onclick="showTab('upgrade')">Upgrade Now</button>
                 </div>
             ` : '';
@@ -1702,7 +1714,7 @@
             return `
                 <div class="match-card">
                     <div class="league-info">
-                        <div class="league-badge">⚽</div>
+                        ${match.league.logo ? `<img src="${match.league.logo}" alt="${match.league.name}" class="league-badge" style="width: 24px; height: 24px; border-radius: 50%;">` : '<div class="league-badge">⚽</div>'}
                         <span>${match.league.name}</span>
                         <span style="color: rgba(255, 255, 255, 0.4);">•</span>
                         <span style="color: rgba(255, 255, 255, 0.5);">${match.league.country}</span>
@@ -1717,16 +1729,15 @@
                                 ${awayLogo}
                             </div>
                             ${scoreDisplay}
-                            ${redCardDisplay}
                             <div class="match-time">🕐 ${matchTime}</div>
                         </div>
                         
                         <div class="prediction-badge">
-                            <div>${pred.prediction}</div>
+                            <div>${prediction}</div>
                             <div class="confidence-bar">
-                                ${pred.confidence}% Confidence
+                                ${confidence}% Confidence
                                 <div class="confidence-meter">
-                                    <div class="confidence-fill" style="width: ${pred.confidence}%"></div>
+                                    <div class="confidence-fill" style="width: ${confidence}%"></div>
                                 </div>
                             </div>
                         </div>
@@ -1738,58 +1749,31 @@
             `;
         }
 
-        function generateLast5Matches() {
-            const results = ['W', 'D', 'L'];
-            return {
-                home: Array(5).fill().map(() => results[Math.floor(Math.random() * results.length)]),
-                away: Array(5).fill().map(() => results[Math.floor(Math.random() * results.length)])
-            };
-        }
-
-        function generateLineups(match) {
-            const formations = ['4-3-3', '4-4-2', '3-5-2', '4-2-3-1'];
-            const homeFormation = formations[Math.floor(Math.random() * formations.length)];
-            const awayFormation = formations[Math.floor(Math.random() * formations.length)];
-
-            const positions = ['GK', 'DF', 'DF', 'DF', 'DF', 'MF', 'MF', 'MF', 'FW', 'FW', 'FW'];
-            
-            const homeLineup = positions.map((pos, i) => ({
-                number: i + 1,
-                name: `Player ${i + 1}`,
-                position: pos,
-                rating: (Math.random() * 2 + 6).toFixed(1)
-            }));
-
-            const awayLineup = positions.map((pos, i) => ({
-                number: i + 1,
-                name: `Player ${i + 1}`,
-                position: pos,
-                rating: (Math.random() * 2 + 6).toFixed(1)
-            }));
+        function generateRealLineups(match) {
+            const homeLineup = match.lineups[0];
+            const awayLineup = match.lineups[1];
 
             return `
                 <div class="lineups-section">
-                    <h4 style="margin-bottom: 15px; color: #667eea;">Lineups & Ratings</h4>
+                    <h4 style="margin-bottom: 15px; color: #667eea;">Starting Lineups</h4>
                     <div class="lineups-grid">
                         <div class="lineup-team">
-                            <h4>${match.teams.home.name} (${homeFormation})</h4>
-                            ${homeLineup.map(player => `
+                            <h4>${homeLineup.team.name} (${homeLineup.formation})</h4>
+                            ${homeLineup.startXI.map(player => `
                                 <div class="player-item">
-                                    <div class="player-number">${player.number}</div>
-                                    <span>${player.name}</span>
-                                    <small style="color: rgba(255, 255, 255, 0.5); margin-left: 8px;">${player.position}</small>
-                                    <div class="player-rating">${player.rating}</div>
+                                    <div class="player-number">${player.player.number}</div>
+                                    <span>${player.player.name}</span>
+                                    <small style="color: rgba(255, 255, 255, 0.5); margin-left: 8px;">${player.player.pos}</small>
                                 </div>
                             `).join('')}
                         </div>
                         <div class="lineup-team">
-                            <h4>${match.teams.away.name} (${awayFormation})</h4>
-                            ${awayLineup.map(player => `
+                            <h4>${awayLineup.team.name} (${awayLineup.formation})</h4>
+                            ${awayLineup.startXI.map(player => `
                                 <div class="player-item">
-                                    <div class="player-number">${player.number}</div>
-                                    <span>${player.name}</span>
-                                    <small style="color: rgba(255, 255, 255, 0.5); margin-left: 8px;">${player.position}</small>
-                                    <div class="player-rating">${player.rating}</div>
+                                    <div class="player-number">${player.player.number}</div>
+                                    <span>${player.player.name}</span>
+                                    <small style="color: rgba(255, 255, 255, 0.5); margin-left: 8px;">${player.player.pos}</small>
                                 </div>
                             `).join('')}
                         </div>
@@ -1810,7 +1794,7 @@
                         <div class="premium-lock" style="position: relative; min-height: 400px;">
                             <div class="lock-icon">🔒</div>
                             <h3>Premium Feature</h3>
-                            <p>Upgrade to access live league tables for all major competitions</p>
+                            <p>Upgrade to access real-time league tables for all major competitions</p>
                             <button class="upgrade-cta" onclick="showTab('upgrade')">Upgrade to Premium</button>
                         </div>
                     </div>
@@ -1826,38 +1810,64 @@
             `;
 
             try {
-                const leagueId = 39; // Premier League as example
-                const response = await fetch(`https://v3.football.api-sports.io/standings?league=${leagueId}&season=2024`, {
-                    method: 'GET',
-                    headers: {
-                        'x-rapidapi-host': 'v3.football.api-sports.io',
-                        'x-rapidapi-key': '3ebb8c007fec13bc6ce38b31614b6bf1be88e0c7c95f5f3d1b4501049b363290'
-                    }
-                });
+                const tables = [];
                 
-                if (response.ok) {
-                    const data = await response.json();
-                    if (data.response && data.response.length > 0) {
-                        displayLeagueTable(data.response[0].league);
-                    } else {
-                        throw new Error('No table data available');
+                // Load tables for top 5 leagues
+                const topLeagues = LEAGUES.slice(0, 5);
+                
+                for (const league of topLeagues) {
+                    try {
+                        const response = await makeAPICall(
+                            `https://${API_HOST}/standings?league=${league.id}&season=2024`,
+                            {
+                                'x-rapidapi-host': API_HOST,
+                                'x-rapidapi-key': API_KEY
+                            }
+                        );
+                        
+                        if (response.ok) {
+                            const data = await response.json();
+                            if (data.response && data.response.length > 0) {
+                                tables.push(displayLeagueTable(data.response[0].league));
+                            }
+                        }
+                        
+                        // Small delay to avoid rate limiting
+                        await new Promise(resolve => setTimeout(resolve, 300));
+                    } catch (error) {
+                        console.log(`Error loading table for ${league.name}:`, error);
                     }
-                } else {
-                    throw new Error('Failed to load table data');
                 }
+
+                if (tables.length === 0) {
+                    throw new Error('No tables available');
+                }
+
+                tablesContent.innerHTML = tables.join('');
+
             } catch (error) {
                 console.error('Error loading tables:', error);
-                tablesContent.innerHTML = generateFallbackTable();
+                tablesContent.innerHTML = `
+                    <div class="error-msg">
+                        <h3>Unable to load league tables</h3>
+                        <p style="margin-top: 10px;">Error: ${error.message}</p>
+                    </div>
+                `;
             }
         }
 
         function displayLeagueTable(leagueData) {
-            const tablesContent = document.getElementById('tablesContent');
             const standings = leagueData.standings[0];
             
-            tablesContent.innerHTML = `
-                <div class="match-card">
-                    <h3 style="margin-bottom: 20px;">${leagueData.name} - ${leagueData.country}</h3>
+            return `
+                <div class="match-card" style="margin-bottom: 30px;">
+                    <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 20px;">
+                        ${leagueData.logo ? `<img src="${leagueData.logo}" alt="${leagueData.name}" style="width: 40px; height: 40px;">` : ''}
+                        <div>
+                            <h3>${leagueData.name}</h3>
+                            <small style="color: rgba(255, 255, 255, 0.5);">${leagueData.country}</small>
+                        </div>
+                    </div>
                     <div class="table-container">
                         <table class="league-table">
                             <thead>
@@ -1897,93 +1907,9 @@
                                         <td><strong>${team.points}</strong></td>
                                         <td>
                                             <div class="form-badges">
-                                                ${team.form.split('').slice(0, 5).map(result => 
+                                                ${team.form ? team.form.split('').slice(0, 5).map(result => 
                                                     `<div class="form-badge form-${result.toLowerCase()}">${result}</div>`
-                                                ).join('')}
-                                            </div>
-                                        </td>
-                                    </tr>
-                                `).join('')}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            `;
-        }
-
-        function generateFallbackTable() {
-            const teams = [
-                'Liverpool', 'Man City', 'Arsenal', 'Aston Villa', 'Tottenham',
-                'Chelsea', 'Newcastle', 'Man United', 'West Ham', 'Brighton',
-                'Wolves', 'Fulham', 'Bournemouth', 'Crystal Palace', 'Brentford',
-                'Everton', 'Nottm Forest', 'Luton', 'Burnley', 'Sheffield Utd'
-            ];
-
-            const tableData = teams.map((team, index) => {
-                const played = 38;
-                const points = 90 - (index * 4) - Math.floor(Math.random() * 3);
-                const wins = Math.floor(points / 3);
-                const draws = Math.floor((points % 3) * 1.5);
-                const losses = played - wins - draws;
-                const gf = wins * 2 + draws + Math.floor(Math.random() * 10);
-                const ga = losses * 2 + Math.floor(Math.random() * 15);
-                const form = Array(5).fill().map(() => ['W', 'D', 'L'][Math.floor(Math.random() * 3)]).join('');
-
-                return {
-                    rank: index + 1,
-                    team,
-                    played,
-                    wins,
-                    draws,
-                    losses,
-                    gf,
-                    ga,
-                    gd: gf - ga,
-                    points,
-                    form
-                };
-            });
-
-            return `
-                <div class="match-card">
-                    <h3 style="margin-bottom: 20px;">Premier League Table (Sample)</h3>
-                    <div class="table-container">
-                        <table class="league-table">
-                            <thead>
-                                <tr>
-                                    <th class="table-position">#</th>
-                                    <th>Team</th>
-                                    <th>P</th>
-                                    <th>W</th>
-                                    <th>D</th>
-                                    <th>L</th>
-                                    <th>GF</th>
-                                    <th>GA</th>
-                                    <th>GD</th>
-                                    <th>Pts</th>
-                                    <th>Form</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                ${tableData.map(team => `
-                                    <tr>
-                                        <td class="table-position">${team.rank}</td>
-                                        <td><strong>${team.team}</strong></td>
-                                        <td>${team.played}</td>
-                                        <td>${team.wins}</td>
-                                        <td>${team.draws}</td>
-                                        <td>${team.losses}</td>
-                                        <td>${team.gf}</td>
-                                        <td>${team.ga}</td>
-                                        <td style="color: ${team.gd > 0 ? '#4CAF50' : team.gd < 0 ? '#f44336' : 'inherit'}">
-                                            ${team.gd > 0 ? '+' : ''}${team.gd}
-                                        </td>
-                                        <td><strong>${team.points}</strong></td>
-                                        <td>
-                                            <div class="form-badges">
-                                                ${team.form.split('').map(result => 
-                                                    `<div class="form-badge form-${result.toLowerCase()}">${result}</div>`
-                                                ).join('')}
+                                                ).join('') : 'N/A'}
                                             </div>
                                         </td>
                                     </tr>
@@ -2008,7 +1934,7 @@
                         <div class="premium-lock" style="position: relative; min-height: 400px;">
                             <div class="lock-icon">🔒</div>
                             <h3>Premium Feature</h3>
-                            <p>Unlock detailed statistical analysis and expert insights</p>
+                            <p>Unlock detailed statistical analysis with real data and expert insights</p>
                             <button class="upgrade-cta" onclick="showTab('upgrade')">Upgrade to Premium</button>
                         </div>
                     </div>
@@ -2028,11 +1954,24 @@
                 return;
             }
 
-            const topMatches = allMatches.slice(0, 5);
-            analysisContent.innerHTML = topMatches.map(match => {
-                const prediction = generatePrediction(match);
-                return createMatchCard(match, prediction, true, true);
-            }).join('');
+            analysisContent.innerHTML = `
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <p>Loading detailed analysis...</p>
+                </div>
+            `;
+
+            const topMatches = allMatches.filter(m => 
+                LEAGUES.some(league => league.id === m.league.id)
+            ).slice(0, 5);
+
+            const matchCards = [];
+            for (const match of topMatches) {
+                const enhancedMatch = await enhanceMatchWithRealData(match);
+                matchCards.push(createMatchCard(enhancedMatch, true, true));
+            }
+
+            analysisContent.innerHTML = matchCards.join('');
         }
 
         function getTodayDate() {
