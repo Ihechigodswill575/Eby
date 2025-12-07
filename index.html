@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WhatsApp Clone</title>
+    <title>GodswillChat 1.0</title>
     <style>
         * {
             margin: 0;
@@ -41,6 +41,12 @@
             color: #00a884;
             margin-bottom: 10px;
             font-size: 32px;
+        }
+
+        .login-box .version {
+            color: #8696a0;
+            font-size: 12px;
+            margin-bottom: 20px;
         }
 
         .login-box p {
@@ -101,6 +107,27 @@
             color: #d32f2f;
             font-size: 14px;
             margin-top: 10px;
+        }
+
+        .success-message {
+            color: #00a884;
+            font-size: 14px;
+            margin-top: 10px;
+        }
+
+        /* Loading Spinner */
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
         }
 
         /* Main App Container */
@@ -329,19 +356,6 @@
             text-overflow: ellipsis;
         }
 
-        .unread-count {
-            background: #00a884;
-            color: white;
-            border-radius: 50%;
-            width: 20px;
-            height: 20px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 12px;
-            font-weight: 600;
-        }
-
         /* Chat Area */
         .chat-area {
             flex: 1;
@@ -362,6 +376,12 @@
         .welcome-screen h2 {
             margin-top: 20px;
             color: #e9edef;
+        }
+
+        .welcome-screen .version {
+            margin-top: 10px;
+            font-size: 14px;
+            color: #8696a0;
         }
 
         .chat-header-bar {
@@ -924,20 +944,48 @@
             margin: 0;
         }
 
-        /* Loading Spinner */
-        .spinner {
-            border: 3px solid #374045;
-            border-top: 3px solid #00a884;
-            border-radius: 50%;
-            width: 30px;
-            height: 30px;
-            animation: spin 1s linear infinite;
-            margin: 20px auto;
+        /* Active Chat Styles */
+        #activeChat {
+            height: 100%;
+            display: none;
+            flex-direction: column;
         }
 
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+        #activeChat.active {
+            display: flex;
+        }
+
+        /* Upload Progress */
+        .upload-progress {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #202c33;
+            padding: 15px 20px;
+            border-radius: 8px;
+            color: #e9edef;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+            z-index: 2000;
+            display: none;
+        }
+
+        .upload-progress.active {
+            display: block;
+        }
+
+        .progress-bar {
+            width: 200px;
+            height: 4px;
+            background: #374045;
+            border-radius: 2px;
+            margin-top: 10px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: #00a884;
+            transition: width 0.3s;
         }
 
         /* Responsive */
@@ -958,6 +1006,10 @@
             .chat-area.hidden {
                 display: none;
             }
+
+            .message-bubble {
+                max-width: 85%;
+            }
         }
     </style>
 </head>
@@ -965,7 +1017,8 @@
     <!-- Login Screen -->
     <div class="login-screen" id="loginScreen">
         <div class="login-box">
-            <h1>💬 WhatsApp Clone</h1>
+            <h1>💬 GodswillChat</h1>
+            <div class="version">Version 1.0</div>
             <p id="authTitle">Welcome! Please login to continue</p>
             
             <input type="text" id="displayName" placeholder="Display Name" style="display:none">
@@ -975,6 +1028,7 @@
             <button id="authBtn">Login</button>
             
             <div class="error-message" id="errorMessage"></div>
+            <div class="success-message" id="successMessage"></div>
             
             <div class="toggle-auth">
                 <span id="toggleAuth">Don't have an account? Sign up</span>
@@ -1017,12 +1071,13 @@
         <!-- Chat Area -->
         <div class="chat-area hidden" id="chatArea">
             <div class="welcome-screen" id="welcomeScreen">
-                <h2>💬 WhatsApp Clone</h2>
+                <h2>💬 GodswillChat</h2>
+                <div class="version">Version 1.0</div>
                 <p>Select a chat to start messaging</p>
             </div>
 
             <!-- Active Chat -->
-            <div id="activeChat" style="display: none; height: 100%; display: flex; flex-direction: column;">
+            <div id="activeChat">
                 <div class="chat-header-bar">
                     <div class="chat-header-info">
                         <div class="avatar" id="activeChatAvatar"></div>
@@ -1069,6 +1124,14 @@
                     <button class="send-btn" id="sendBtn">➤</button>
                 </div>
             </div>
+        </div>
+    </div>
+
+    <!-- Upload Progress -->
+    <div class="upload-progress" id="uploadProgress">
+        <div>Uploading...</div>
+        <div class="progress-bar">
+            <div class="progress-fill" id="progressFill"></div>
         </div>
     </div>
 
@@ -1181,8 +1244,8 @@
         };
 
         // Cloudinary Configuration
-        const CLOUDINARY_CLOUD_NAME = "dqn7xu";
-        const CLOUDINARY_UPLOAD_PRESET = "ml_default";
+        const CLOUDINARY_CLOUD_NAME = "dykqgn7xu";
+        const CLOUDINARY_UPLOAD_PRESET = "Godswill";
 
         // Initialize Firebase
         const app = initializeApp(firebaseConfig);
@@ -1211,6 +1274,7 @@
         const emailInput = document.getElementById('email');
         const passwordInput = document.getElementById('password');
         const errorMessage = document.getElementById('errorMessage');
+        const successMessage = document.getElementById('successMessage');
         const authTitle = document.getElementById('authTitle');
         const chatsList = document.getElementById('chatsList');
         const messagesArea = document.getElementById('messagesArea');
@@ -1230,6 +1294,7 @@
         const blockedUsersModal = document.getElementById('blockedUsersModal');
         const replyBar = document.getElementById('replyBar');
         const searchMessagesBar = document.getElementById('searchMessagesBar');
+        const uploadProgress = document.getElementById('uploadProgress');
 
         // Toggle between Login and Sign Up
         toggleAuth.addEventListener('click', () => {
@@ -1245,6 +1310,8 @@
                 toggleAuth.innerHTML = "<span>Don't have an account? Sign up</span>";
                 displayNameInput.style.display = 'none';
             }
+            errorMessage.textContent = '';
+            successMessage.textContent = '';
         });
 
         // Authentication
@@ -1263,8 +1330,13 @@
                 return;
             }
 
+            if (password.length < 6) {
+                showError('Password must be at least 6 characters');
+                return;
+            }
+
             authBtn.disabled = true;
-            authBtn.textContent = isSignUp ? 'Creating account...' : 'Logging in...';
+            authBtn.innerHTML = isSignUp ? '<span class="spinner"></span>' : '<span class="spinner"></span>';
 
             try {
                 if (isSignUp) {
@@ -1278,12 +1350,15 @@
                         status: 'online',
                         lastSeen: serverTimestamp()
                     });
+
+                    showSuccess('Account created successfully!');
                 } else {
                     await signInWithEmailAndPassword(auth, email, password);
+                    showSuccess('Logged in successfully!');
                 }
                 errorMessage.textContent = '';
             } catch (error) {
-                showError(error.message);
+                showError(getErrorMessage(error.code));
                 authBtn.disabled = false;
                 authBtn.textContent = isSignUp ? 'Sign Up' : 'Login';
             }
@@ -1291,6 +1366,25 @@
 
         function showError(message) {
             errorMessage.textContent = message;
+            successMessage.textContent = '';
+        }
+
+        function showSuccess(message) {
+            successMessage.textContent = message;
+            errorMessage.textContent = '';
+        }
+
+        function getErrorMessage(code) {
+            const errors = {
+                'auth/email-already-in-use': 'This email is already registered',
+                'auth/invalid-email': 'Invalid email address',
+                'auth/weak-password': 'Password is too weak',
+                'auth/user-not-found': 'No account found with this email',
+                'auth/wrong-password': 'Incorrect password',
+                'auth/too-many-requests': 'Too many attempts. Try again later',
+                'auth/network-request-failed': 'Network error. Check your connection'
+            };
+            return errors[code] || 'An error occurred. Please try again';
         }
 
         // Auth State Observer
@@ -1334,7 +1428,6 @@
             }
 
             loadChats();
-            loadAllUsers();
             setupChatTabs();
         }
 
@@ -1503,7 +1596,9 @@
             activeChat = { id: chatId, otherUserId, otherUser };
             
             document.getElementById('welcomeScreen').style.display = 'none';
-            document.getElementById('activeChat').style.display = 'flex';
+            const activeChatElement = document.getElementById('activeChat');
+            activeChatElement.style.display = 'flex';
+            activeChatElement.classList.add('active');
             document.getElementById('chatArea').classList.remove('hidden');
 
             const activeChatAvatar = document.getElementById('activeChatAvatar');
@@ -1569,6 +1664,23 @@
                     });
                 }
             });
+        }
+
+        // Mark Messages as Read
+        async function markMessagesAsRead(chatId) {
+            const messagesRef = ref(database, `messages/${chatId}`);
+            const snapshot = await get(messagesRef);
+            const messages = snapshot.val();
+            
+            if (messages) {
+                Object.keys(messages).forEach(async (messageId) => {
+                    const message = messages[messageId];
+                    if (message.senderId !== currentUser.uid && !message.read) {
+                        const messageRef = ref(database, `messages/${chatId}/${messageId}`);
+                        await update(messageRef, { read: true });
+                    }
+                });
+            }
         }
 
         // Load Messages
@@ -1656,10 +1768,6 @@
 
             div.addEventListener('contextmenu', (e) => {
                 e.preventDefault();
-                showMessageMenu(e, message);
-            });
-
-            div.addEventListener('long-press', (e) => {
                 showMessageMenu(e, message);
             });
 
@@ -1877,8 +1985,143 @@
         // Escape HTML
         function escapeHtml(text) {
             const div = document.createElement('div');
-                                        div.textContent = text;
+            div.textContent = text;
             return div.innerHTML;
+        }
+
+        // Upload to Cloudinary
+        async function uploadToCloudinary(file, resourceType = 'auto') {
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+
+            uploadProgress.classList.add('active');
+            document.getElementById('progressFill').style.width = '0%';
+
+            try {
+                const response = await fetch(
+                    `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/${resourceType}/upload`,
+                    {
+                        method: 'POST',
+                        body: formData
+                    }
+                );
+
+                if (!response.ok) {
+                    throw new Error('Upload failed');
+                }
+
+                const data = await response.json();
+                document.getElementById('progressFill').style.width = '100%';
+                
+                setTimeout(() => {
+                    uploadProgress.classList.remove('active');
+                }, 1000);
+
+                return data.secure_url;
+            } catch (error) {
+                uploadProgress.classList.remove('active');
+                alert('Upload failed. Please try again.');
+                throw error;
+            }
+        }
+
+        // Handle Image Upload
+        document.getElementById('imageInput').addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file || !activeChat) return;
+
+            if (file.size > 10 * 1024 * 1024) {
+                alert('Image size must be less than 10MB');
+                return;
+            }
+
+            try {
+                const imageUrl = await uploadToCloudinary(file, 'image');
+                await sendMediaMessage(imageUrl, 'image', file.name);
+            } catch (error) {
+                console.error('Image upload error:', error);
+            }
+
+            e.target.value = '';
+        });
+
+        // Handle Video Upload
+        document.getElementById('videoInput').addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file || !activeChat) return;
+
+            if (file.size > 50 * 1024 * 1024) {
+                alert('Video size must be less than 50MB');
+                return;
+            }
+
+            try {
+                const videoUrl = await uploadToCloudinary(file, 'video');
+                await sendMediaMessage(videoUrl, 'video', file.name);
+            } catch (error) {
+                console.error('Video upload error:', error);
+            }
+
+            e.target.value = '';
+        });
+
+        // Handle File Upload
+        document.getElementById('fileInput').addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file || !activeChat) return;
+
+            if (file.size > 20 * 1024 * 1024) {
+                alert('File size must be less than 20MB');
+                return;
+            }
+
+            try {
+                const fileUrl = await uploadToCloudinary(file, 'raw');
+                await sendMediaMessage(fileUrl, 'file', file.name);
+            } catch (error) {
+                console.error('File upload error:', error);
+            }
+
+            e.target.value = '';
+        });
+
+        // Send Media Message
+        async function sendMediaMessage(mediaUrl, type, fileName = '') {
+            if (!activeChat) return;
+
+            const message = {
+                senderId: currentUser.uid,
+                text: '',
+                mediaUrl: mediaUrl,
+                type: type,
+                fileName: fileName,
+                timestamp: Date.now(),
+                read: false
+            };
+
+            if (replyToMessage) {
+                message.replyTo = {
+                    messageId: replyToMessage.id,
+                    text: replyToMessage.text,
+                    senderId: replyToMessage.senderId
+                };
+            }
+
+            const messagesRef = ref(database, `messages/${activeChat.id}`);
+            await push(messagesRef, message);
+
+            const chatRef = ref(database, `chats/${activeChat.id}`);
+            await update(chatRef, {
+                lastMessage: {
+                    text: type === 'image' ? '📷 Photo' : type === 'video' ? '🎥 Video' : '📎 File',
+                    timestamp: Date.now(),
+                    senderId: currentUser.uid
+                }
+            });
+
+            replyToMessage = null;
+            replyBar.classList.remove('active');
         }
 
         // Send Message
@@ -1948,178 +2191,79 @@
             set(typingRef, false);
         }
 
-        // Mark Messages as Read
-        async function markMessagesAsRead(chatId) {
-            const messagesRef = ref(database, `messages/${chatId}`);
-            const snapshot = await get(messagesRef);
-            const messages = snapshot.val();
-            
-            if (messages) {
-                const updates = {};
-                Object.keys(messages).forEach(messageId => {
-                    if (messages[messageId].senderId !== currentUser.uid && !messages[messageId].read) {
-                        updates[`${messageId}/read`] = true;
-                    }
-                });
-                if (Object.keys(updates).length > 0) {
-                    await update(messagesRef, updates);
-                }
-            }
-        }
-
-        // Upload to Cloudinary
-        async function uploadToCloudinary(file, type) {
-            const formData = new FormData();
-            formData.append('file', file);
-            formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
-            formData.append('cloud_name', CLOUDINARY_CLOUD_NAME);
-
-            let resourceType = 'image';
-            if (type === 'video') resourceType = 'video';
-            if (type === 'raw') resourceType = 'raw';
-
-            const url = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/${resourceType}/upload`;
-
-            try {
-                const response = await fetch(url, {
-                    method: 'POST',
-                    body: formData
-                });
-
-                const data = await response.json();
-                return data.secure_url;
-            } catch (error) {
-                console.error('Upload error:', error);
-                alert('Failed to upload file. Please try again.');
-                return null;
-            }
-        }
-
-        // Handle Image Upload
-        document.getElementById('imageInput').addEventListener('change', async (e) => {
-            const file = e.target.files[0];
-            if (!file || !activeChat) return;
-
-            sendBtn.disabled = true;
-            sendBtn.textContent = '⏳';
-
-            const imageUrl = await uploadToCloudinary(file, 'image');
-            
-            if (imageUrl) {
-                const message = {
-                    senderId: currentUser.uid,
-                    type: 'image',
-                    mediaUrl: imageUrl,
-                    text: '',
-                    timestamp: Date.now(),
-                    read: false
-                };
-
-                const messagesRef = ref(database, `messages/${activeChat.id}`);
-                await push(messagesRef, message);
-
-                const chatRef = ref(database, `chats/${activeChat.id}`);
-                await update(chatRef, {
-                    lastMessage: {
-                        text: '📷 Photo',
-                        timestamp: Date.now(),
-                        senderId: currentUser.uid
-                    }
-                });
-            }
-
-            sendBtn.disabled = false;
-            sendBtn.textContent = '➤';
-            e.target.value = '';
-        });
-
-        // Handle Video Upload
-        document.getElementById('videoInput').addEventListener('change', async (e) => {
-            const file = e.target.files[0];
-            if (!file || !activeChat) return;
-
-            sendBtn.disabled = true;
-            sendBtn.textContent = '⏳';
-
-            const videoUrl = await uploadToCloudinary(file, 'video');
-            
-            if (videoUrl) {
-                const message = {
-                    senderId: currentUser.uid,
-                    type: 'video',
-                    mediaUrl: videoUrl,
-                    text: '',
-                    timestamp: Date.now(),
-                    read: false
-                };
-
-                const messagesRef = ref(database, `messages/${activeChat.id}`);
-                await push(messagesRef, message);
-
-                const chatRef = ref(database, `chats/${activeChat.id}`);
-                await update(chatRef, {
-                    lastMessage: {
-                        text: '🎥 Video',
-                        timestamp: Date.now(),
-                        senderId: currentUser.uid
-                    }
-                });
-            }
-
-            sendBtn.disabled = false;
-            sendBtn.textContent = '➤';
-            e.target.value = '';
-        });
-
-        // Handle File Upload
-        document.getElementById('fileInput').addEventListener('change', async (e) => {
-            const file = e.target.files[0];
-            if (!file || !activeChat) return;
-
-            sendBtn.disabled = true;
-            sendBtn.textContent = '⏳';
-
-            const fileUrl = await uploadToCloudinary(file, 'raw');
-            
-            if (fileUrl) {
-                const message = {
-                    senderId: currentUser.uid,
-                    type: 'file',
-                    mediaUrl: fileUrl,
-                    fileName: file.name,
-                    text: '',
-                    timestamp: Date.now(),
-                    read: false
-                };
-
-                const messagesRef = ref(database, `messages/${activeChat.id}`);
-                await push(messagesRef, message);
-
-                const chatRef = ref(database, `chats/${activeChat.id}`);
-                await update(chatRef, {
-                    lastMessage: {
-                        text: `📄 ${file.name}`,
-                        timestamp: Date.now(),
-                        senderId: currentUser.uid
-                    }
-                });
-            }
-
-            sendBtn.disabled = false;
-            sendBtn.textContent = '➤';
-            e.target.value = '';
-        });
-
         // Profile Modal
         userProfile.addEventListener('click', () => {
-            profileModal.classList.add('active');
             document.getElementById('profileDisplayName').value = currentUser.displayName || '';
-            
             const preview = document.getElementById('profilePhotoPreview');
             if (currentUser.photoURL) {
                 preview.innerHTML = `<img src="${currentUser.photoURL}" alt="Profile">`;
             } else {
                 preview.textContent = getInitials(currentUser.displayName);
+            }
+            profileModal.classList.add('active');
+        });
+
+        document.getElementById('profilePhotoInput').addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            if (file.size > 5 * 1024 * 1024) {
+                alert('Image size must be less than 5MB');
+                return;
+            }
+
+            try {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    document.getElementById('profilePhotoPreview').innerHTML = `<img src="${e.target.result}" alt="Profile">`;
+                };
+                reader.readAsDataURL(file);
+            } catch (error) {
+                console.error('Error reading file:', error);
+            }
+        });
+
+        document.getElementById('saveProfileBtn').addEventListener('click', async () => {
+            const displayName = document.getElementById('profileDisplayName').value.trim();
+            if (!displayName) {
+                alert('Please enter a display name');
+                return;
+            }
+
+            const btn = document.getElementById('saveProfileBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner"></span>';
+
+            try {
+                let photoURL = currentUser.photoURL;
+                const photoInput = document.getElementById('profilePhotoInput');
+                
+                if (photoInput.files[0]) {
+                    photoURL = await uploadToCloudinary(photoInput.files[0], 'image');
+                }
+
+                await updateProfile(currentUser, { displayName, photoURL });
+                await update(ref(database, `users/${currentUser.uid}`), {
+                    displayName,
+                    photoURL
+                });
+
+                document.getElementById('currentUserName').textContent = displayName;
+                const userAvatar = document.getElementById('userAvatar');
+                if (photoURL) {
+                    userAvatar.innerHTML = `<img src="${photoURL}" alt="Profile"><div class="online-indicator"></div>`;
+                } else {
+                    userAvatar.innerHTML = `${getInitials(displayName)}<div class="online-indicator"></div>`;
+                }
+
+                profileModal.classList.remove('active');
+                alert('Profile updated successfully!');
+            } catch (error) {
+                alert('Failed to update profile. Please try again.');
+                console.error('Profile update error:', error);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Save Profile';
             }
         });
 
@@ -2127,109 +2271,33 @@
             profileModal.classList.remove('active');
         });
 
-        // Profile Photo Upload
-        document.getElementById('profilePhotoInput').addEventListener('change', async (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
-
-            const preview = document.getElementById('profilePhotoPreview');
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                preview.innerHTML = `<img src="${e.target.result}" alt="Profile">`;
-            };
-            reader.readAsDataURL(file);
-        });
-
-        // Save Profile
-        document.getElementById('saveProfileBtn').addEventListener('click', async () => {
-            const newDisplayName = document.getElementById('profileDisplayName').value.trim();
-            const photoFile = document.getElementById('profilePhotoInput').files[0];
-
-            if (!newDisplayName) {
-                alert('Please enter a display name');
-                return;
-            }
-
-            document.getElementById('saveProfileBtn').disabled = true;
-            document.getElementById('saveProfileBtn').textContent = 'Saving...';
-
-            try {
-                let photoURL = currentUser.photoURL;
-                
-                if (photoFile) {
-                    photoURL = await uploadToCloudinary(photoFile, 'image');
-                }
-
-                await updateProfile(currentUser, {
-                    displayName: newDisplayName,
-                    photoURL: photoURL
-                });
-
-                const userRef = ref(database, `users/${currentUser.uid}`);
-                await update(userRef, {
-                    displayName: newDisplayName,
-                    photoURL: photoURL
-                });
-
-                profileModal.classList.remove('active');
-                initializeApp();
-            } catch (error) {
-                alert('Failed to update profile: ' + error.message);
-            }
-
-            document.getElementById('saveProfileBtn').disabled = false;
-            document.getElementById('saveProfileBtn').textContent = 'Save Profile';
-        });
-
-        // Load All Users
-        function loadAllUsers() {
-            const usersRef = ref(database, 'users');
-            onValue(usersRef, (snapshot) => {
-                window.allUsers = snapshot.val();
-            });
-        }
-
         // New Chat Modal
         newChatBtn.addEventListener('click', () => {
+            loadAllUsers();
             newChatModal.classList.add('active');
-            displayUserList();
         });
 
-        document.getElementById('cancelNewChatBtn').addEventListener('click', () => {
-            newChatModal.classList.remove('active');
-        });
-
-        // Search New Chat
-        document.getElementById('searchNewChat').addEventListener('input', (e) => {
-            displayUserList(e.target.value);
-        });
-
-        // Display User List
-        async function displayUserList(searchTerm = '') {
+        async function loadAllUsers() {
+            const usersRef = ref(database, 'users');
+            const snapshot = await get(usersRef);
+            const users = snapshot.val();
             const userList = document.getElementById('userList');
             userList.innerHTML = '';
 
-            if (!window.allUsers) {
-                userList.innerHTML = '<p style="color: #667781; text-align: center; padding: 20px;">No users found</p>';
-                return;
-            }
+            if (!users) return;
 
-            for (const userId of Object.keys(window.allUsers)) {
+            for (const userId of Object.keys(users)) {
                 if (userId === currentUser.uid) continue;
-
-                const user = window.allUsers[userId];
-                if (searchTerm && !user.displayName.toLowerCase().includes(searchTerm.toLowerCase())) {
-                    continue;
-                }
 
                 const isBlocked = await checkIfBlocked(userId);
                 if (isBlocked) continue;
 
+                const user = users[userId];
                 const userItem = document.createElement('div');
                 userItem.className = 'user-item';
                 
                 const isOnline = user.status === 'online';
-
+                
                 userItem.innerHTML = `
                     <div class="avatar">
                         ${user.photoURL ? `<img src="${user.photoURL}" alt="${user.displayName}">` : getInitials(user.displayName)}
@@ -2237,172 +2305,201 @@
                     </div>
                     <div class="user-item-info">
                         <h4>${user.displayName}</h4>
-                        <p>${isOnline ? 'Online' : 'Offline'}</p>
+                        <p>${user.email}</p>
                     </div>
                 `;
 
-                userItem.addEventListener('click', () => {
-                    startNewChat(userId, user);
+                userItem.addEventListener('click', async () => {
+                    await createOrOpenChat(userId, user);
+                    newChatModal.classList.remove('active');
                 });
 
                 userList.appendChild(userItem);
             }
-
-            if (userList.children.length === 0) {
-                userList.innerHTML = '<p style="color: #667781; text-align: center; padding: 20px;">No users found</p>';
-            }
         }
 
-        // Start New Chat
-        async function startNewChat(otherUserId, otherUser) {
+        async function createOrOpenChat(otherUserId, otherUser) {
             const chatsRef = ref(database, 'chats');
             const snapshot = await get(chatsRef);
             const chats = snapshot.val();
 
-            let existingChatId = null;
             if (chats) {
-                Object.keys(chats).forEach(chatId => {
+                for (const chatId of Object.keys(chats)) {
                     const chat = chats[chatId];
                     if (chat.participants && 
                         chat.participants[currentUser.uid] && 
                         chat.participants[otherUserId]) {
-                        existingChatId = chatId;
+                        openChat(chatId, otherUserId, otherUser);
+                        return;
                     }
-                });
+                }
             }
 
-            if (existingChatId) {
-                openChat(existingChatId, otherUserId, otherUser);
-            } else {
-                const newChatRef = push(ref(database, 'chats'));
-                await set(newChatRef, {
-                    participants: {
-                        [currentUser.uid]: true,
-                        [otherUserId]: true
-                    },
-                    createdAt: serverTimestamp(),
-                    lastMessage: {
-                        text: '',
-                        timestamp: Date.now()
-                    }
-                });
-
-                openChat(newChatRef.key, otherUserId, otherUser);
-            }
-
-            newChatModal.classList.remove('active');
-        }
-
-        // Search Users in Sidebar
-        searchUsers.addEventListener('input', (e) => {
-            const searchTerm = e.target.value.toLowerCase();
-            const chatItems = document.querySelectorAll('.chat-item');
-            
-            chatItems.forEach(item => {
-                const name = item.querySelector('.chat-name').textContent.toLowerCase();
-                if (name.includes(searchTerm)) {
-                    item.style.display = 'flex';
-                } else {
-                    item.style.display = 'none';
+            const newChatRef = push(ref(database, 'chats'));
+            await set(newChatRef, {
+                participants: {
+                    [currentUser.uid]: true,
+                    [otherUserId]: true
+                },
+                createdAt: serverTimestamp(),
+                lastMessage: {
+                    text: 'Chat created',
+                    timestamp: Date.now(),
+                    senderId: currentUser.uid
                 }
             });
+
+            openChat(newChatRef.key, otherUserId, otherUser);
+        }
+
+        document.getElementById('cancelNewChatBtn').addEventListener('click', () => {
+            newChatModal.classList.remove('active');
+        });
+
+        document.getElementById('searchNewChat').addEventListener('input', (e) => {
+            const searchTerm = e.target.value.toLowerCase();
+            const items = document.querySelectorAll('.user-item');
+            items.forEach(item => {
+                const text = item.textContent.toLowerCase();
+                item.style.display = text.includes(searchTerm) ? 'flex' : 'none';
+            });
+        });
+
+        // Search Users in Chat List
+        searchUsers.addEventListener('input', (e) => {
+            const searchTerm = e.target.value.toLowerCase();
+            const items = document.querySelectorAll('.chat-item');
+            items.forEach(item => {
+                const text = item.textContent.toLowerCase();
+                item.style.display = text.includes(searchTerm) ? 'flex' : 'none';
+            });
+        });
+
+        // Search Messages
+        document.getElementById('searchMessagesBtn').addEventListener('click', () => {
+            searchMessagesBar.classList.add('active');
+            document.getElementById('searchMessagesInput').focus();
+        });
+
+        document.getElementById('closeSearchBtn').addEventListener('click', () => {
+            searchMessagesBar.classList.remove('active');
+            document.getElementById('searchMessagesInput').value = '';
+            document.getElementById('searchResultCount').textContent = '';
+            document.querySelectorAll('.message.highlighted').forEach(msg => {
+                msg.classList.remove('highlighted');
+            });
+            searchResults = [];
+            currentSearchIndex = 0;
+        });
+
+        document.getElementById('searchMessagesInput').addEventListener('input', (e) => {
+            const searchTerm = e.target.value.toLowerCase();
+            searchResults = [];
+            currentSearchIndex = 0;
+
+            document.querySelectorAll('.message.highlighted').forEach(msg => {
+                msg.classList.remove('highlighted');
+            });
+
+            if (!searchTerm) {
+                document.getElementById('searchResultCount').textContent = '';
+                return;
+            }
+
+            const messages = document.querySelectorAll('.message');
+            messages.forEach((msg, index) => {
+                const text = msg.textContent.toLowerCase();
+                if (text.includes(searchTerm)) {
+                    searchResults.push(msg);
+                    msg.classList.add('highlighted');
+                }
+            });
+
+            if (searchResults.length > 0) {
+                document.getElementById('searchResultCount').textContent = `${searchResults.length} found`;
+                searchResults[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
+            } else {
+                document.getElementById('searchResultCount').textContent = 'No results';
+            }
         });
 
         // Chat Menu
         document.getElementById('chatMenuBtn').addEventListener('click', () => {
             chatMenuModal.classList.add('active');
-            updateChatMenuButtons();
         });
 
         document.getElementById('closeChatMenuBtn').addEventListener('click', () => {
             chatMenuModal.classList.remove('active');
         });
 
-        async function updateChatMenuButtons() {
-            if (!activeChat) return;
-
-            const chatSettingsRef = ref(database, `userChats/${currentUser.uid}/${activeChat.id}`);
-            const snapshot = await get(chatSettingsRef);
-            const settings = snapshot.val() || {};
-
-            const archiveBtn = document.getElementById('archiveChatBtn');
-            const muteBtn = document.getElementById('muteChatBtn');
-
-            archiveBtn.textContent = settings.archived ? '📦 Unarchive Chat' : '📦 Archive Chat';
-            muteBtn.textContent = settings.muted ? '🔔 Unmute Chat' : '🔇 Mute Chat';
-        }
-
         document.getElementById('archiveChatBtn').addEventListener('click', async () => {
             if (!activeChat) return;
 
-            const chatSettingsRef = ref(database, `userChats/${currentUser.uid}/${activeChat.id}`);
-            const snapshot = await get(chatSettingsRef);
-            const settings = snapshot.val() || {};
+            const userChatRef = ref(database, `userChats/${currentUser.uid}/${activeChat.id}`);
+            const snapshot = await get(userChatRef);
+            const isArchived = snapshot.val()?.archived || false;
 
-            await update(chatSettingsRef, {
-                archived: !settings.archived
+            await update(userChatRef, {
+                archived: !isArchived
             });
 
             chatMenuModal.classList.remove('active');
+            alert(isArchived ? 'Chat unarchived' : 'Chat archived');
             loadChats();
-            alert(settings.archived ? 'Chat unarchived' : 'Chat archived');
         });
 
         document.getElementById('muteChatBtn').addEventListener('click', async () => {
             if (!activeChat) return;
 
-            const chatSettingsRef = ref(database, `userChats/${currentUser.uid}/${activeChat.id}`);
-            const snapshot = await get(chatSettingsRef);
-            const settings = snapshot.val() || {};
+            const userChatRef = ref(database, `userChats/${currentUser.uid}/${activeChat.id}`);
+            const snapshot = await get(userChatRef);
+            const isMuted = snapshot.val()?.muted || false;
 
-            await update(chatSettingsRef, {
-                muted: !settings.muted
+            await update(userChatRef, {
+                muted: !isMuted
             });
 
             chatMenuModal.classList.remove('active');
+            alert(isMuted ? 'Chat unmuted' : 'Chat muted');
             loadChats();
-            alert(settings.muted ? 'Chat unmuted' : 'Chat muted');
         });
 
         document.getElementById('blockUserBtn').addEventListener('click', async () => {
             if (!activeChat) return;
 
-            if (confirm(`Block ${activeChat.otherUser.displayName}? You won't receive messages from them.`)) {
+            if (confirm(`Block ${activeChat.otherUser.displayName}? You won't be able to message each other.`)) {
                 const blockRef = ref(database, `blockedUsers/${currentUser.uid}/${activeChat.otherUserId}`);
                 await set(blockRef, {
-                    blockedAt: Date.now(),
+                    blockedAt: serverTimestamp(),
                     displayName: activeChat.otherUser.displayName
                 });
 
                 chatMenuModal.classList.remove('active');
-                document.getElementById('welcomeScreen').style.display = 'flex';
-                document.getElementById('activeChat').style.display = 'none';
-                activeChat = null;
-                loadChats();
                 alert('User blocked successfully');
+                
+                document.getElementById('welcomeScreen').style.display = 'flex';
+                document.getElementById('activeChat').classList.remove('active');
+                activeChat = null;
+                
+                loadChats();
             }
         });
 
         // Blocked Users
-        document.getElementById('blockedUsersBtn').addEventListener('click', () => {
-            loadBlockedUsers();
+        document.getElementById('blockedUsersBtn').addEventListener('click', async () => {
+            await loadBlockedUsers();
             blockedUsersModal.classList.add('active');
-        });
-
-        document.getElementById('closeBlockedUsersBtn').addEventListener('click', () => {
-            blockedUsersModal.classList.remove('active');
         });
 
         async function loadBlockedUsers() {
             const blockedRef = ref(database, `blockedUsers/${currentUser.uid}`);
             const snapshot = await get(blockedRef);
             const blocked = snapshot.val();
-
-            const list = document.getElementById('blockedUsersList');
-            list.innerHTML = '';
+            const blockedList = document.getElementById('blockedUsersList');
+            blockedList.innerHTML = '';
 
             if (!blocked) {
-                list.innerHTML = '<p style="color: #667781; text-align: center; padding: 20px;">No blocked users</p>';
+                blockedList.innerHTML = '<p style="color: #667781; text-align: center; padding: 20px;">No blocked users</p>';
                 return;
             }
 
@@ -2414,79 +2511,42 @@
                 item.className = 'blocked-user-item';
                 item.innerHTML = `
                     <div style="display: flex; align-items: center; gap: 10px;">
-                        <div class="avatar" style="width: 40px; height: 40px;">
+                        <div class="avatar" style="width: 40px; height: 40px; font-size: 16px;">
                             ${user?.photoURL ? `<img src="${user.photoURL}" alt="${user.displayName}">` : getInitials(user?.displayName || 'User')}
                         </div>
                         <span style="color: #e9edef;">${user?.displayName || 'Unknown User'}</span>
                     </div>
-                    <button data-user-id="${userId}">Unblock</button>
+                    <button onclick="unblockUser('${userId}')">Unblock</button>
                 `;
 
-                item.querySelector('button').addEventListener('click', async (e) => {
-                    const uid = e.target.dataset.userId;
-                    const blockRef = ref(database, `blockedUsers/${currentUser.uid}/${uid}`);
-                    await remove(blockRef);
-                    loadBlockedUsers();
-                    loadChats();
-                    alert('User unblocked');
-                });
-
-                list.appendChild(item);
+                blockedList.appendChild(item);
             }
         }
 
-        // Search Messages
-        document.getElementById('searchMessagesBtn').addEventListener('click', () => {
-            searchMessagesBar.classList.add('active');
-            document.getElementById('searchMessagesInput').focus();
-        });
-
-        document.getElementById('closeSearchBtn').addEventListener('click', () => {
-            searchMessagesBar.classList.remove('active');
-            document.getElementById('searchMessagesInput').value = '';
-            clearSearchHighlights();
-        });
-
-        document.getElementById('searchMessagesInput').addEventListener('input', (e) => {
-            const searchTerm = e.target.value.toLowerCase();
-            if (!searchTerm) {
-                clearSearchHighlights();
-                return;
+        window.unblockUser = async function(userId) {
+            if (confirm('Unblock this user?')) {
+                const blockRef = ref(database, `blockedUsers/${currentUser.uid}/${userId}`);
+                await remove(blockRef);
+                await loadBlockedUsers();
+                loadChats();
+                alert('User unblocked successfully');
             }
+        };
 
-            searchInMessages(searchTerm);
+        document.getElementById('closeBlockedUsersBtn').addEventListener('click', () => {
+            blockedUsersModal.classList.remove('active');
         });
 
-        function searchInMessages(searchTerm) {
-            const messages = messagesArea.querySelectorAll('.message');
-            searchResults = [];
-            currentSearchIndex = 0;
-
-            messages.forEach((msg, index) => {
-                const content = msg.querySelector('.message-content');
-                if (content && content.textContent.toLowerCase().includes(searchTerm)) {
-                    msg.classList.add('highlighted');
-                    searchResults.push(msg);
-                } else {
-                    msg.classList.remove('highlighted');
+        // Close modals on outside click
+        document.querySelectorAll('.modal').forEach(modal => {
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    modal.classList.remove('active');
                 }
             });
+        });
 
-            document.getElementById('searchResultCount').textContent = 
-                searchResults.length > 0 ? `${searchResults.length} results` : 'No results';
-
-            if (searchResults.length > 0) {
-                searchResults[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
-            }
-        }
-
-        function clearSearchHighlights() {
-            const messages = messagesArea.querySelectorAll('.message');
-            messages.forEach(msg => msg.classList.remove('highlighted'));
-            searchResults = [];
-            document.getElementById('searchResultCount').textContent = '';
-        }
-
+        console.log('GodswillChat 1.0 initialized successfully! 🚀');
     </script>
 </body>
-</html>       
+</html>
