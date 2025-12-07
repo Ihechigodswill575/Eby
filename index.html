@@ -107,12 +107,14 @@
             color: #d32f2f;
             font-size: 14px;
             margin-top: 10px;
+            min-height: 20px;
         }
 
         .success-message {
             color: #00a884;
             font-size: 14px;
             margin-top: 10px;
+            min-height: 20px;
         }
 
         /* Loading Spinner */
@@ -1252,6 +1254,8 @@
         const auth = getAuth(app);
         const database = getDatabase(app);
 
+        console.log('🚀 Firebase initialized successfully');
+
         // Global Variables
         let currentUser = null;
         let activeChat = null;
@@ -1314,12 +1318,19 @@
             successMessage.textContent = '';
         });
 
-        // Authentication
+        // Authentication - FIXED VERSION
         authBtn.addEventListener('click', async () => {
             const email = emailInput.value.trim();
             const password = passwordInput.value;
             const displayName = displayNameInput.value.trim();
 
+            // Clear previous messages
+            errorMessage.textContent = '';
+            successMessage.textContent = '';
+
+            console.log('🔐 Auth attempt:', { email, isSignUp, displayName: isSignUp ? displayName : 'N/A' });
+
+            // Validation
             if (!email || !password) {
                 showError('Please fill in all fields');
                 return;
@@ -1335,32 +1346,74 @@
                 return;
             }
 
+            // Email validation
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(email)) {
+                showError('Please enter a valid email address');
+                return;
+            }
+
+            const originalText = authBtn.textContent;
             authBtn.disabled = true;
-            authBtn.innerHTML = isSignUp ? '<span class="spinner"></span>' : '<span class="spinner"></span>';
+            authBtn.innerHTML = '<span class="spinner"></span>';
 
             try {
                 if (isSignUp) {
-                    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-                    await updateProfile(userCredential.user, { displayName });
+                    console.log('📝 Creating new account...');
                     
-                    await set(ref(database, `users/${userCredential.user.uid}`), {
-                        displayName,
-                        email,
-                        photoURL: '',
-                        status: 'online',
-                        lastSeen: serverTimestamp()
-                    });
+                    // Create user account
+                    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+                    console.log('✅ User account created:', userCredential.user.uid);
+                    
+                    // Update profile with display name
+                    await updateProfile(userCredential.user, { displayName });
+                    console.log('✅ Profile updated with display name');
+                    
+                    // Wait a moment for auth state to propagate
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                    
+                    // Set user data in database
+                    try {
+                        await set(ref(database, `users/${userCredential.user.uid}`), {
+                            displayName,
+                            email,
+                            photoURL: '',
+                            status: 'online',
+                            lastSeen: serverTimestamp(),
+                            createdAt: serverTimestamp()
+                        });
+                        console.log('✅ User data saved to database');
+                    } catch (dbError) {
+                        console.error('⚠️ Database write error:', dbError);
+                        // Don't throw - auth was successful, user can still use the app
+                    }
 
-                    showSuccess('Account created successfully!');
+                    showSuccess('Account created successfully! Logging you in...');
+                    
+                    // Clear inputs after successful signup
+                    setTimeout(() => {
+                        emailInput.value = '';
+                        passwordInput.value = '';
+                        displayNameInput.value = '';
+                    }, 1000);
                 } else {
+                    console.log('🔑 Logging in...');
                     await signInWithEmailAndPassword(auth, email, password);
+                    console.log('✅ Login successful');
                     showSuccess('Logged in successfully!');
                 }
-                errorMessage.textContent = '';
             } catch (error) {
+                console.error('❌ Auth error:', error.code, error.message);
                 showError(getErrorMessage(error.code));
                 authBtn.disabled = false;
-                authBtn.textContent = isSignUp ? 'Sign Up' : 'Login';
+                authBtn.textContent = originalText;
+            }
+        });
+
+        // Allow Enter key for login/signup
+        passwordInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                authBtn.click();
             }
         });
 
@@ -1376,34 +1429,46 @@
 
         function getErrorMessage(code) {
             const errors = {
-                'auth/email-already-in-use': 'This email is already registered',
-                'auth/invalid-email': 'Invalid email address',
-                'auth/weak-password': 'Password is too weak',
-                'auth/user-not-found': 'No account found with this email',
-                'auth/wrong-password': 'Incorrect password',
-                'auth/too-many-requests': 'Too many attempts. Try again later',
-                'auth/network-request-failed': 'Network error. Check your connection'
+                'auth/email-already-in-use': 'This email is already registered. Please login instead.',
+                'auth/invalid-email': 'Invalid email address format.',
+                'auth/weak-password': 'Password is too weak. Use at least 6 characters.',
+                'auth/user-not-found': 'No account found with this email. Please sign up.',
+                'auth/wrong-password': 'Incorrect password. Please try again.',
+                'auth/too-many-requests': 'Too many failed attempts. Please try again later.',
+                'auth/network-request-failed': 'Network error. Check your internet connection.',
+                'auth/invalid-credential': 'Invalid email or password.',
+                'auth/operation-not-allowed': 'Email/password sign-in is not enabled.',
+                'permission-denied': 'Database permission denied. Please contact support.'
             };
-            return errors[code] || 'An error occurred. Please try again';
+            return errors[code] || `Error: ${code}. Please try again or contact support.`;
         }
 
         // Auth State Observer
         onAuthStateChanged(auth, async (user) => {
             if (user) {
+                console.log('👤 User authenticated:', user.uid, user.displayName);
                 currentUser = user;
                 loginScreen.style.display = 'none';
                 mainContainer.classList.add('active');
                 
-                const userStatusRef = ref(database, `users/${user.uid}/status`);
-                await set(userStatusRef, 'online');
-                onDisconnect(userStatusRef).set('offline');
+                try {
+                    // Set user online status
+                    const userStatusRef = ref(database, `users/${user.uid}/status`);
+                    await set(userStatusRef, 'online');
+                    onDisconnect(userStatusRef).set('offline');
 
-                const lastSeenRef = ref(database, `users/${user.uid}/lastSeen`);
-                await set(lastSeenRef, serverTimestamp());
-                onDisconnect(lastSeenRef).set(serverTimestamp());
+                    const lastSeenRef = ref(database, `users/${user.uid}/lastSeen`);
+                    await set(lastSeenRef, serverTimestamp());
+                    onDisconnect(lastSeenRef).set(serverTimestamp());
+
+                    console.log('✅ User status set to online');
+                } catch (error) {
+                    console.error('⚠️ Error setting online status:', error);
+                }
 
                 initializeApp();
             } else {
+                console.log('👋 User logged out');
                 currentUser = null;
                 loginScreen.style.display = 'flex';
                 mainContainer.classList.remove('active');
@@ -1413,12 +1478,22 @@
         // Logout
         logoutBtn.addEventListener('click', async () => {
             if (confirm('Are you sure you want to logout?')) {
-                await signOut(auth);
+                try {
+                    if (currentUser) {
+                        await set(ref(database, `users/${currentUser.uid}/status`), 'offline');
+                    }
+                    await signOut(auth);
+                    console.log('👋 Logged out successfully');
+                } catch (error) {
+                    console.error('❌ Logout error:', error);
+                    alert('Error logging out. Please try again.');
+                }
             }
         });
 
         // Initialize App
         function initializeApp() {
+            console.log('🎨 Initializing app interface...');
             document.getElementById('currentUserName').textContent = currentUser.displayName || 'User';
             const userAvatar = document.getElementById('userAvatar');
             if (currentUser.photoURL) {
@@ -2546,7 +2621,7 @@
             });
         });
 
-        console.log('GodswillChat 1.0 initialized successfully! 🚀');
+        console.log('✅ GodswillChat 1.0 initialized successfully! 🚀');
     </script>
 </body>
 </html>
