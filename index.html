@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GodswillChat - Modern Messaging</title>
+    <title>Wilora - Modern Messaging Platform</title>
     <style>
         /* CSS Variables for Theme Switching */
         :root {
@@ -155,13 +155,52 @@
         }
 
         .auth-branding h1 {
-            font-size: 42px;
+            font-size: 48px;
             font-weight: 700;
             margin-bottom: 15px;
+            letter-spacing: 2px;
         }
 
         .auth-branding p {
             font-size: 18px;
+            opacity: 0.9;
+            margin-bottom: 30px;
+        }
+
+        .developer-credit {
+            margin-top: 40px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .developer-credit h4 {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 10px;
+            opacity: 0.9;
+        }
+
+        .developer-credit p {
+            font-size: 12px;
+            opacity: 0.8;
+            margin: 5px 0;
+        }
+
+        .contact-info {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .contact-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 11px;
             opacity: 0.9;
         }
 
@@ -352,7 +391,7 @@
             display: flex;
             align-items: center;
             padding: 4px;
-            z-index: 2000;
+            z-index: 10000;
             border: 2px solid var(--border-color);
             transition: all 0.3s ease;
         }
@@ -1267,132 +1306,6 @@
             100% { opacity: 1; }
         }
 
-        /* Context Menu */
-        .context-menu {
-            position: fixed;
-            background: var(--card-bg);
-            backdrop-filter: blur(20px);
-            border-radius: 12px;
-            padding: 8px;
-            box-shadow: 0 10px 30px var(--shadow);
-            z-index: 5000;
-            display: none;
-            min-width: 200px;
-            animation: contextMenuSlide 0.2s ease;
-        }
-
-        @keyframes contextMenuSlide {
-            from {
-                opacity: 0;
-                transform: scale(0.9) translateY(-10px);
-            }
-            to {
-                opacity: 1;
-                transform: scale(1) translateY(0);
-            }
-        }
-
-        .context-menu.show {
-            display: block;
-        }
-
-        .context-menu-item {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 12px 16px;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            font-size: 14px;
-            color: var(--text-primary);
-        }
-
-        .context-menu-item:hover {
-            background: var(--hover-bg);
-        }
-
-        .context-menu-item.danger {
-            color: #ef4444;
-        }
-
-        .context-menu-item.danger:hover {
-            background: rgba(239, 68, 68, 0.1);
-        }
-
-        .context-menu-icon {
-            font-size: 18px;
-        }
-
-        /* Responsive Design */
-        @media (max-width: 768px) {
-            .auth-container {
-                flex-direction: column;
-                max-width: 100%;
-                height: 100%;
-                border-radius: 0;
-            }
-
-            .auth-branding {
-                padding: 40px 30px;
-            }
-
-            .auth-branding h1 {
-                font-size: 32px;
-            }
-
-            .auth-form-container {
-                padding: 30px;
-            }
-
-            .sidebar {
-                width: 100%;
-                position: absolute;
-                top: 0;
-                left: 0;
-                height: 100%;
-                z-index: 20;
-            }
-
-            .sidebar.hide-mobile {
-                display: none;
-            }
-
-            .chat-area {
-                width: 100%;
-            }
-
-            .theme-toggle {
-                top: 80px;
-            }
-
-            .message-bubble {
-                max-width: 85%;
-            }
-
-            .back-btn {
-                display: block;
-                width: 40px;
-                height: 40px;
-                border-radius: 10px;
-                background: var(--bg-tertiary);
-                border: none;
-                cursor: pointer;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                font-size: 20px;
-                color: var(--text-primary);
-                margin-right: 10px;
-            }
-        }
-
-        @media (min-width: 769px) {
-            .back-btn {
-                display: none;
-            }
-        }
-
         /* Notification Toast */
         .notification-toast {
             position: fixed;
@@ -1473,74 +1386,73 @@
             }
         }
 
-        /* Reactions */
-        .message-reactions {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 6px;
-            margin-top: 8px;
-        }
-
-        .reaction-bubble {
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-            padding: 4px 10px;
-            background: rgba(102, 126, 234, 0.1);
-            border-radius: 12px;
-            font-size: 14px;
-            cursor: pointer;
-            transition: all 0.2s ease;
-        }
-
-        .reaction-bubble:hover {
-            transform: scale(1.1);
-            background: rgba(102, 126, 234, 0.2);
-        }
-
-        .reaction-count {
-            font-size: 11px;
-            font-weight: 600;
-            color: var(--text-secondary);
-        }
-
-        /* Reaction Picker */
-        .reaction-picker {
-            position: fixed;
-            background: var(--card-bg);
-            backdrop-filter: blur(20px);
-            border-radius: 30px;
-            padding: 10px 15px;
-            box-shadow: 0 10px 30px var(--shadow);
-            z-index: 5000;
-            display: none;
-            animation: reactionPopIn 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
-        }
-
-        @keyframes reactionPopIn {
-            from {
-                opacity: 0;
-                transform: scale(0.5);
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .auth-container {
+                flex-direction: column;
+                max-width: 100%;
+                height: 100%;
+                border-radius: 0;
             }
-            to {
-                opacity: 1;
-                transform: scale(1);
+
+            .auth-branding {
+                padding: 40px 30px;
+            }
+
+            .auth-branding h1 {
+                font-size: 32px;
+            }
+
+            .auth-form-container {
+                padding: 30px;
+            }
+
+            .sidebar {
+                width: 100%;
+                position: absolute;
+                top: 0;
+                left: 0;
+                height: 100%;
+                z-index: 20;
+            }
+
+            .sidebar.hide-mobile {
+                display: none;
+            }
+
+            .chat-area {
+                width: 100%;
+            }
+
+            .theme-toggle {
+                top: 80px;
+            }
+
+            .message-bubble {
+                max-width: 85%;
+            }
+
+            .back-btn {
+                display: block;
+                width: 40px;
+                height: 40px;
+                border-radius: 10px;
+                background: var(--bg-tertiary);
+                border: none;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 20px;
+                color: var(--text-primary);
+                margin-right: 10px;
             }
         }
 
-        .reaction-picker.show {
-            display: flex;
-            gap: 10px;
-        }
-
-        .reaction-option {
-            font-size: 28px;
-            cursor: pointer;
-            transition: transform 0.2s ease;
-        }
-
-        .reaction-option:hover {
-            transform: scale(1.3);
+        @media (min-width: 769px) {
+            .back-btn {
+                display: none;
+            }
         }
     </style>
 </head>
@@ -1560,8 +1472,23 @@
         <div class="auth-container">
             <div class="auth-branding">
                 <div class="auth-logo">💬</div>
-                <h1>GodswillChat</h1>
+                <h1>Wilora</h1>
                 <p>Connect with friends and family in real-time</p>
+                
+                <div class="developer-credit">
+                    <h4>Created by 🅓🅔🅥🅖🅞🅓🅢🅦🅘🅛🅛</h4>
+                    <p>Advanced Web Application</p>
+                    <div class="contact-info">
+                        <div class="contact-item">
+                            <span>📧</span>
+                            <span>ihechigodswill575@gmail.com</span>
+                        </div>
+                        <div class="contact-item">
+                            <span>📱</span>
+                            <span>+234 814 568 8688</span>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <div class="auth-form-container">
@@ -1600,7 +1527,7 @@
                     <div id="messageContainer"></div>
 
                     <div class="auth-toggle">
-                        <span id="authToggleText">Don't have an account? <a class="auth-toggle-link" id="authToggleLink">Sign up</a></span>
+                        <span id="authToggleText">Don't have an account? <a class="auth-toggle-link">Sign up</a></span>
                     </div>
                 </form>
             </div>
@@ -1650,7 +1577,7 @@
         <div class="chat-area" id="chatArea">
             <div class="welcome-screen" id="welcomeScreen">
                 <div class="welcome-icon">💬</div>
-                <h2>GodswillChat</h2>
+                <h2>Wilora</h2>
                 <p>Select a chat to start messaging</p>
             </div>
 
@@ -1769,32 +1696,6 @@
         </div>
     </div>
 
-    <!-- Context Menu -->
-    <div class="context-menu" id="contextMenu">
-        <div class="context-menu-item" id="replyMenuItem">
-            <span class="context-menu-icon">↩️</span>
-            <span>Reply</span>
-        </div>
-        <div class="context-menu-item" id="reactMenuItem">
-            <span class="context-menu-icon">❤️</span>
-            <span>React</span>
-        </div>
-        <div class="context-menu-item" id="deleteMenuItem">
-            <span class="context-menu-icon">🗑️</span>
-            <span>Delete</span>
-        </div>
-    </div>
-
-    <!-- Reaction Picker -->
-    <div class="reaction-picker" id="reactionPicker">
-        <span class="reaction-option" data-reaction="❤️">❤️</span>
-        <span class="reaction-option" data-reaction="😂">😂</span>
-        <span class="reaction-option" data-reaction="😮">😮</span>
-        <span class="reaction-option" data-reaction="😢">😢</span>
-        <span class="reaction-option" data-reaction="🙏">🙏</span>
-        <span class="reaction-option" data-reaction="👍">👍</span>
-    </div>
-
     <!-- Notification Toast -->
     <div class="notification-toast" id="notificationToast">
         <div class="notification-content">
@@ -1832,14 +1733,13 @@
         const auth = getAuth(app);
         const database = getDatabase(app);
 
-        console.log('🚀 GodswillChat initialized');
+        console.log('🚀 Wilora initialized');
 
         // Global State
         let currentUser = null;
         let activeChat = null;
         let isSignupMode = false;
         let typingTimeout = null;
-        let selectedMessage = null;
 
         // Theme Management
         function initTheme() {
@@ -1863,36 +1763,36 @@
 
         initTheme();
 
-        // Auth Toggle
-        document.getElementById('authToggleLink').addEventListener('click', () => {
-            isSignupMode = !isSignupMode;
-            const displayNameGroup = document.getElementById('displayNameGroup');
-            const authTitle = document.getElementById('authTitle');
-            const authSubtitle = document.getElementById('authSubtitle');
-            const authBtn = document.getElementById('authBtn');
-            const authToggleText = document.getElementById('authToggleText');
+        // Auth Toggle - Fixed with event delegation
+        document.getElementById('authToggleText').addEventListener('click', (e) => {
+            if (e.target.classList.contains('auth-toggle-link')) {
+                e.preventDefault();
+                isSignupMode = !isSignupMode;
+                const displayNameGroup = document.getElementById('displayNameGroup');
+                const authTitle = document.getElementById('authTitle');
+                const authSubtitle = document.getElementById('authSubtitle');
+                const authBtn = document.getElementById('authBtn');
+                const authToggleText = document.getElementById('authToggleText');
 
-            if (isSignupMode) {
-                displayNameGroup.style.display = 'block';
-                authTitle.textContent = 'Create Account';
-                authSubtitle.textContent = 'Sign up to start chatting';
-                authBtn.textContent = 'Sign Up';
-                authToggleText.innerHTML = 'Already have an account? <a class="auth-toggle-link" id="authToggleLink">Login</a>';
-            } else {
-                displayNameGroup.style.display = 'none';
-                authTitle.textContent = 'Welcome Back';
-                authSubtitle.textContent = 'Login to continue messaging';
-                authBtn.textContent = 'Login';
-                authToggleText.innerHTML = 'Don\'t have an account? <a class="auth-toggle-link" id="authToggleLink">Sign up</a>';
+                if (isSignupMode) {
+                    displayNameGroup.style.display = 'block';
+                    authTitle.textContent = 'Create Account';
+                    authSubtitle.textContent = 'Sign up to start chatting';
+                    authBtn.textContent = 'Sign Up';
+                    authToggleText.innerHTML = 'Already have an account? <a class="auth-toggle-link">Login</a>';
+                } else {
+                    displayNameGroup.style.display = 'none';
+                    authTitle.textContent = 'Welcome Back';
+                    authSubtitle.textContent = 'Login to continue messaging';
+                    authBtn.textContent = 'Login';
+                    authToggleText.innerHTML = 'Don\'t have an account? <a class="auth-toggle-link">Sign up</a>';
+                }
             }
-
-            // Reattach event listener
-            document.getElementById('authToggleLink').addEventListener('click', arguments.callee);
         });
 
-        // Auth Form
+        // Auth Form - Fixed to prevent refresh
         document.getElementById('authForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
+            e.preventDefault(); // This prevents the page refresh
             
             const email = document.getElementById('email').value.trim();
             const password = document.getElementById('password').value;
@@ -2069,16 +1969,6 @@
             // Search
             document.getElementById('searchChats').addEventListener('input', searchChats);
             document.getElementById('searchUsers').addEventListener('input', searchUsers);
-
-            // Context Menu
-            document.addEventListener('click', (e) => {
-                if (!e.target.closest('.context-menu')) {
-                    document.getElementById('contextMenu').classList.remove('show');
-                }
-                if (!e.target.closest('.reaction-picker')) {
-                    document.getElementById('reactionPicker').classList.remove('show');
-                }
-            });
 
             // Modal Background Click
             document.querySelectorAll('.modal').forEach(modal => {
@@ -2340,14 +2230,6 @@
 
                 // Scroll to bottom
                 messagesContainer.scrollTop = messagesContainer.scrollHeight;
-
-                // Add context menu listeners
-                document.querySelectorAll('.message').forEach(msgEl => {
-                    msgEl.addEventListener('contextmenu', (e) => {
-                        e.preventDefault();
-                        showContextMenu(e, msgEl.dataset.messageId);
-                    });
-                });
             });
         }
 
@@ -2379,23 +2261,10 @@
                 if (msg.text) content += `<div class="message-text">${escapeHtml(msg.text)}</div>`;
             }
 
-            let reactions = '';
-            if (msg.reactions) {
-                reactions = `<div class="message-reactions">` +
-                    Object.entries(msg.reactions).map(([emoji, users]) => 
-                        `<div class="reaction-bubble">
-                            <span>${emoji}</span>
-                            <span class="reaction-count">${Object.keys(users).length}</span>
-                        </div>`
-                    ).join('') +
-                    `</div>`;
-            }
-
             return `
                 <div class="message ${messageClass}" data-message-id="${msg.id}">
                     <div class="message-bubble">
                         ${content}
-                        ${reactions}
                         <div class="message-meta">
                             <span>${formatTime(msg.timestamp)}</span>
                             ${isSent ? `<span class="read-receipt ${msg.read ? 'read' : ''}">✓✓</span>` : ''}
@@ -2602,45 +2471,6 @@
                 alert('Failed to update profile');
             }
         }
-
-        // Context Menu
-        function showContextMenu(event, messageId) {
-            selectedMessage = messageId;
-            const menu = document.getElementById('contextMenu');
-            menu.style.left = event.pageX + 'px';
-            menu.style.top = event.pageY + 'px';
-            menu.classList.add('show');
-        }
-
-        document.getElementById('reactMenuItem').addEventListener('click', () => {
-            const menu = document.getElementById('contextMenu');
-            const picker = document.getElementById('reactionPicker');
-            picker.style.left = menu.style.left;
-            picker.style.top = menu.style.top;
-            picker.classList.add('show');
-            menu.classList.remove('show');
-        });
-
-        document.getElementById('deleteMenuItem').addEventListener('click', async () => {
-            if (selectedMessage && activeChat) {
-                if (confirm('Delete this message?')) {
-                    await remove(ref(database, `chats/${activeChat}/messages/${selectedMessage}`));
-                }
-            }
-            document.getElementById('contextMenu').classList.remove('show');
-        });
-
-        // Reactions
-        document.querySelectorAll('.reaction-option').forEach(option => {
-            option.addEventListener('click', async () => {
-                const emoji = option.dataset.reaction;
-                if (selectedMessage && activeChat) {
-                    const reactionRef = ref(database, `chats/${activeChat}/messages/${selectedMessage}/reactions/${emoji}/${currentUser.uid}`);
-                    await set(reactionRef, true);
-                }
-                document.getElementById('reactionPicker').classList.remove('show');
-            });
-        });
 
         // Search
         function searchChats(event) {
