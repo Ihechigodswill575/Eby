@@ -17,9 +17,7 @@ const firebaseConfig = {
 
 // Cloudinary Configuration
 const CLOUDINARY_CLOUD_NAME = "dykqgn7xu";
-const CLOUDINARY_UPLOAD_PRESET = "ml_default"; // You'll need to set this in Cloudinary
-
-// Initialize Firebase
+const CLOUDINARY_UPLOAD_PRESET = "dzxckgbzp";
 const app = initializeApp(firebaseConfig);
 const database = getDatabase(app);
 
