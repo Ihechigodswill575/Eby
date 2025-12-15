@@ -18,6 +18,8 @@ const firebaseConfig = {
 // Cloudinary Configuration
 const CLOUDINARY_CLOUD_NAME = "dykqgn7xu";
 const CLOUDINARY_UPLOAD_PRESET = "dzxckgbzp";
+
+// Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const database = getDatabase(app);
 
@@ -41,7 +43,7 @@ function App() {
   const [uploading, setUploading] = useState(false);
   const [headerTransparent, setHeaderTransparent] = useState(false);
 
-  // Admin credentials (in production, hash these!)
+  // Admin credentials
   const ADMIN_CREDENTIALS = {
     username: 'nelly_admin',
     password: 'NellyJ2025!'
@@ -271,7 +273,6 @@ function App() {
     
     return (
       <div className="min-h-screen bg-gray-50">
-        {/* Admin Header */}
         <div className="bg-white shadow-md p-4 flex justify-between items-center">
           <h1 className="text-2xl font-bold text-gray-900">🎨 Nelly J Admin</h1>
           <button
@@ -283,7 +284,6 @@ function App() {
         </div>
 
         <div className="max-w-7xl mx-auto p-6">
-          {/* Stats */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
             <div className="bg-white p-6 rounded-lg shadow-md">
               <h3 className="text-gray-600 text-sm font-semibold">Total Designs</h3>
@@ -301,7 +301,6 @@ function App() {
             </div>
           </div>
 
-          {/* Upload Button */}
           <button
             onClick={() => setShowUploadForm(!showUploadForm)}
             className="w-full bg-amber-600 text-white py-4 rounded-lg hover:bg-amber-700 transition-all font-semibold mb-6 flex items-center justify-center gap-2"
@@ -310,7 +309,6 @@ function App() {
             {showUploadForm ? 'Cancel Upload' : '📸 Upload New Design'}
           </button>
 
-          {/* Upload Form */}
           {showUploadForm && (
             <div className="bg-white p-6 rounded-lg shadow-md mb-8">
               <h3 className="text-xl font-bold mb-4">Upload New Design</h3>
@@ -355,7 +353,6 @@ function App() {
             </div>
           )}
 
-          {/* Pending Comments */}
           {pendingCount > 0 && (
             <div className="bg-yellow-50 border-2 border-yellow-400 p-6 rounded-lg mb-8">
               <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
@@ -390,7 +387,6 @@ function App() {
             </div>
           )}
 
-          {/* All Designs */}
           <div className="bg-white p-6 rounded-lg shadow-md">
             <h3 className="text-xl font-bold mb-4">🎨 All Designs</h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -423,7 +419,6 @@ function App() {
   // Public Website
   return (
     <div className="min-h-screen bg-gradient-to-br from-amber-50 via-white to-amber-50">
-      {/* Header */}
       <header className={`fixed top-0 w-full z-50 transition-all duration-300 ${
         headerTransparent ? 'bg-white/90 backdrop-blur-md shadow-lg' : 'bg-white shadow-md'
       }`}>
@@ -433,7 +428,6 @@ function App() {
             <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Nelly J Stitches</h1>
           </div>
           
-          {/* Desktop Menu */}
           <nav className="hidden md:flex gap-8 text-gray-700 font-medium">
             <a href="#home" className="hover:text-amber-600 transition-colors">Home</a>
             <a href="#designs" className="hover:text-amber-600 transition-colors">Designs</a>
@@ -441,13 +435,11 @@ function App() {
             <a href="#contact" className="hover:text-amber-600 transition-colors">Contact</a>
           </nav>
 
-          {/* Mobile Menu Button */}
           <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="md:hidden">
             {isMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
           </button>
         </div>
 
-        {/* Mobile Menu */}
         {isMenuOpen && (
           <div className="md:hidden bg-white border-t">
             <nav className="flex flex-col gap-4 p-4">
@@ -460,7 +452,6 @@ function App() {
         )}
       </header>
 
-      {/* Hero Section */}
       <section id="home" className="pt-32 pb-20 px-4">
         <div className="max-w-7xl mx-auto text-center">
           <h2 className="text-5xl md:text-7xl font-bold text-gray-900 mb-6">
@@ -480,7 +471,6 @@ function App() {
         </div>
       </section>
 
-      {/* Designs Feed */}
       <section id="designs" className="py-20 px-4 bg-white">
         <div className="max-w-7xl mx-auto">
           <h2 className="text-4xl font-bold text-center mb-12">Latest Designs</h2>
@@ -499,7 +489,6 @@ function App() {
                   <p className="text-sm text-gray-600 mb-2">{design.category}</p>
                   <p className="text-gray-700 mb-4">{design.description}</p>
                   
-                  {/* Like/Dislike/Comment */}
                   <div className="flex gap-6 mb-4 text-gray-600">
                     <button 
                       onClick={() => handleLike(design.id, design.likes || 0)}
@@ -524,7 +513,6 @@ function App() {
                     </button>
                   </div>
 
-                  {/* Approved Comments */}
                   {design.comments?.filter(c => c.status === 'approved').slice(0, 2).map(comment => (
                     <div key={comment.id} className="border-t pt-3 mt-3">
                       <p className="font-semibold text-sm">{comment.name}</p>
@@ -538,7 +526,6 @@ function App() {
         </div>
       </section>
 
-      {/* Comment Modal */}
       {selectedDesign && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg max-w-md w-full max-h-[80vh] overflow-y-auto p-6">
@@ -549,7 +536,6 @@ function App() {
               </button>
             </div>
 
-            {/* Approved Comments */}
             <div className="space-y-4 mb-6">
               {selectedDesign.comments?.filter(c => c.status === 'approved').map(comment => (
                 <div key={comment.id} className="border-b pb-3">
@@ -562,7 +548,6 @@ function App() {
               ))}
             </div>
 
-            {/* Add Comment */}
             <div className="space-y-3">
               <input
                 type="text"
@@ -588,7 +573,6 @@ function App() {
         </div>
       )}
 
-      {/* About Section */}
       <section id="about" className="py-20 px-4">
         <div className="max-w-4xl mx-auto text-center">
           <h2 className="text-4xl font-bold mb-6">About Nelly J Stitches</h2>
@@ -623,7 +607,6 @@ function App() {
         </div>
       </section>
 
-      {/* CTA Section */}
       <section className="py-20 px-4 bg-gradient-to-r from-amber-600 to-amber-800 text-white">
         <div className="max-w-4xl mx-auto text-center">
           <h2 className="text-4xl md:text-5xl font-bold mb-6">Your Style, Perfectly Stitched</h2>
@@ -640,7 +623,6 @@ function App() {
         </div>
       </section>
 
-      {/* Footer */}
       <footer id="contact" className="bg-gray-900 text-white py-12 px-4">
         <div className="max-w-7xl mx-auto">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
